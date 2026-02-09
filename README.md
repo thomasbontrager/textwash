@@ -1,2 +1,2 @@
-# cleantext
-CleanText — Universal Text Cleaner
+# textwash
+TextWash — Universal Text Cleaner
