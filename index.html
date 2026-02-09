@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CleanText — Universal Text Cleaner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.ico" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HERO / HEADER -->
+  <header class="hero">
+    <img src="assets/logo.png" alt="CleanText logo" class="logo">
+
+    <p class="tagline">Universal Text Cleaner</p>
+
+    <p class="subtitle">
+      Paste messy text. One click. Clean output.
+    </p>
+  </header>
+
+  <!-- APP -->
+  <main class="app">
+    <textarea id="input" placeholder="Paste your messy text here..."></textarea>
+
+    <button id="cleanBtn">Clean Text</button>
+
+    <textarea id="output" placeholder="Clean text appears here..." readonly></textarea>
+
+    <button id="copyBtn">Copy Clean Text</button>
+  </main>
+
+  <!-- BUY -->
+  <section class="buy">
+    <p>❤️ Runs 100% locally. No tracking. No uploads.</p>
+    <a href="#" class="buy-btn">Buy CleanText ($5)</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 CleanText • Built by Thomas Bontrager</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
