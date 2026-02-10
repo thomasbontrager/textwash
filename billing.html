@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Billing - TextWash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.ico" />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      padding: 3rem;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 600px;
+      width: 100%;
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1rem;
+    }
+    
+    h1 {
+      color: #667eea;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+    }
+    
+    p {
+      color: #666;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    
+    .btn {
+      background: #667eea;
+      color: white;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+      margin: 0.5rem;
+    }
+    
+    .btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+    
+    .btn-secondary:hover {
+      background: #f7f7ff;
+      transform: translateY(-2px);
+    }
+    
+    .message {
+      background: #f0f7ff;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .message.success {
+      background: #f0fff4;
+      border-color: #48bb78;
+    }
+    
+    .message h2 {
+      color: #667eea;
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .message.success h2 {
+      color: #48bb78;
+    }
+  </style>
+  
+  <!-- Subdomain configuration -->
+  <script src="subdomain-config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <img src="assets/logo.png" alt="TextWash" class="logo">
+    <h1>TextWash Billing</h1>
+    
+    <div id="contentArea">
+      <!-- Content will be dynamically loaded -->
+      <p>Welcome to the TextWash Billing Portal</p>
+      <p>Manage your subscription, update payment methods, and view billing history.</p>
+      
+      <button class="btn" onclick="openBillingPortal()">Open Billing Portal</button>
+      <a href="/" class="btn btn-secondary">Return to App</a>
+    </div>
+  </div>
+  
+  <script>
+    // Check if we're returning from Stripe
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    
+    if (success === 'true') {
+      document.getElementById('contentArea').innerHTML = `
+        <div class="message success">
+          <h2>✅ Success!</h2>
+          <p>Your billing information has been successfully updated.</p>
+        </div>
+        <a href="/" class="btn">Return to App</a>
+      `;
+    } else if (canceled === 'true') {
+      document.getElementById('contentArea').innerHTML = `
+        <div class="message">
+          <h2>ℹ️ Cancelled</h2>
+          <p>You cancelled the billing update. No changes were made.</p>
+        </div>
+        <button class="btn" onclick="openBillingPortal()">Try Again</button>
+        <a href="/" class="btn btn-secondary">Return to App</a>
+      `;
+    }
+    
+    async function openBillingPortal() {
+      try {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          window.location.href = '/';
+          return;
+        }
+        
+        const response = await fetch(`${SUBDOMAIN_CONFIG.apiUrl}/billing/create-portal-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to open billing portal');
+        }
+        
+        const { url } = await response.json();
+        window.location.href = url;
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
