@@ -1,5 +1,15 @@
 {
+  "name": "textwash-frontend",
+  "version": "1.0.0",
+  "description": "TextWash frontend static site",
+  "scripts": {
+    "dev": "http-server -p 3001 -c-1 --cors",
+    "start": "http-server -p 3001"
+  },
   "dependencies": {
     "@stripe/stripe-js": "^8.7.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
