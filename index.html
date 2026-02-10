@@ -305,13 +305,63 @@
     <div class="admin-container">
       <!-- TAB NAVIGATION -->
       <div class="admin-tabs">
-        <button class="admin-tab active" onclick="switchAdminTab('stripe')">Stripe Config</button>
-        <button class="admin-tab" onclick="switchAdminTab('users')">Users</button>
+        <button class="admin-tab active" onclick="switchAdminTab('billing')">💳 Billing</button>
+        <button class="admin-tab" onclick="switchAdminTab('stripe')">🔧 Stripe Config</button>
+        <button class="admin-tab" onclick="switchAdminTab('products')">📦 Products</button>
+        <button class="admin-tab" onclick="switchAdminTab('subscriptions')">📊 Subscriptions</button>
+        <button class="admin-tab" onclick="switchAdminTab('customers')">👥 Customers</button>
+        <button class="admin-tab" onclick="switchAdminTab('invoices')">🧾 Invoices</button>
+        <button class="admin-tab" onclick="switchAdminTab('webhooks')">🔔 Webhooks</button>
+        <button class="admin-tab" onclick="switchAdminTab('users')">👤 Users</button>
+      </div>
+
+      <!-- BILLING DASHBOARD TAB -->
+      <div id="billingTab" class="admin-tab-content active">
+        <h2>💳 Billing Dashboard</h2>
+        
+        <!-- Metrics Overview -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <h3>Monthly Recurring Revenue</h3>
+            <div class="metric-value" id="mrr">$0</div>
+            <div class="metric-label">MRR</div>
+          </div>
+          <div class="metric-card">
+            <h3>Annual Recurring Revenue</h3>
+            <div class="metric-value" id="arr">$0</div>
+            <div class="metric-label">ARR</div>
+          </div>
+          <div class="metric-card">
+            <h3>Active Subscriptions</h3>
+            <div class="metric-value" id="activeSubs">0</div>
+            <div class="metric-label">Active</div>
+          </div>
+          <div class="metric-card">
+            <h3>Trial Users</h3>
+            <div class="metric-value" id="trialSubs">0</div>
+            <div class="metric-label">Trialing</div>
+          </div>
+        </div>
+
+        <!-- Plan Breakdown -->
+        <div class="section">
+          <h3>Subscriptions by Plan</h3>
+          <div id="planBreakdown" class="plan-breakdown"></div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section">
+          <h3>Recent Activity</h3>
+          <div id="recentActivity" class="activity-list"></div>
+        </div>
       </div>
 
       <!-- STRIPE CONFIG TAB -->
-      <div id="stripeTab" class="admin-tab-content active">
-        <h2>Stripe Configuration</h2>
+      <div id="stripeTab" class="admin-tab-content hidden">
+        <h2>🔧 Stripe Configuration</h2>
+        <div class="config-status" id="configStatus">
+          <p>⚠️ Loading configuration status...</p>
+        </div>
         <form id="stripeConfigForm" onsubmit="handleStripeConfig(event)">
           <div class="form-group">
             <label for="publishableKey">Publishable Key</label>
@@ -330,12 +380,170 @@
           <button type="submit" class="btn btn-primary">Save Configuration</button>
           <p class="error" id="configError"></p>
         </form>
+
+        <div class="section">
+          <h3>Setup Instructions</h3>
+          <ol class="setup-instructions">
+            <li>Create a Stripe account at <a href="https://stripe.com" target="_blank">stripe.com</a></li>
+            <li>Get your API keys from the Stripe Dashboard</li>
+            <li>Create a webhook endpoint pointing to: <code id="webhookUrl"></code></li>
+            <li>Add webhook events: checkout.session.completed, customer.subscription.*, invoice.*</li>
+            <li>Copy the webhook signing secret and paste above</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- PRODUCTS TAB -->
+      <div id="productsTab" class="admin-tab-content hidden">
+        <h2>📦 Products & Prices</h2>
+        
+        <div class="actions-bar">
+          <button class="btn btn-primary" onclick="showCreateProductModal()">+ Create Product</button>
+        </div>
+
+        <div id="productsList" class="products-list"></div>
+      </div>
+
+      <!-- SUBSCRIPTIONS TAB -->
+      <div id="subscriptionsTab" class="admin-tab-content hidden">
+        <h2>📊 Subscription Management</h2>
+        
+        <div class="filters-bar">
+          <select id="subStatusFilter" onchange="loadSubscriptions()">
+            <option value="">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="TRIALING">Trialing</option>
+            <option value="PAST_DUE">Past Due</option>
+            <option value="CANCELED">Canceled</option>
+          </select>
+          <button class="btn btn-secondary" onclick="loadSubscriptions()">Refresh</button>
+        </div>
+
+        <div id="subscriptionsList" class="subscriptions-list"></div>
+      </div>
+
+      <!-- CUSTOMERS TAB -->
+      <div id="customersTab" class="admin-tab-content hidden">
+        <h2>👥 Customer Management</h2>
+        
+        <div class="search-bar">
+          <input type="text" id="customerSearch" placeholder="Search by email..." onkeyup="searchCustomers()">
+          <button class="btn btn-secondary" onclick="loadCustomers()">Refresh</button>
+        </div>
+
+        <div id="customersList" class="customers-list"></div>
+      </div>
+
+      <!-- INVOICES TAB -->
+      <div id="invoicesTab" class="admin-tab-content hidden">
+        <h2>🧾 Invoice Management</h2>
+        
+        <div class="filters-bar">
+          <select id="invoiceStatusFilter" onchange="loadInvoices()">
+            <option value="">All Statuses</option>
+            <option value="paid">Paid</option>
+            <option value="open">Open</option>
+            <option value="payment_failed">Failed</option>
+          </select>
+          <button class="btn btn-secondary" onclick="loadInvoices()">Refresh</button>
+        </div>
+
+        <div id="invoicesList" class="invoices-list"></div>
+      </div>
+
+      <!-- WEBHOOKS TAB -->
+      <div id="webhooksTab" class="admin-tab-content hidden">
+        <h2>🔔 Webhook Event Monitor</h2>
+        
+        <div class="filters-bar">
+          <select id="webhookProcessedFilter" onchange="loadWebhookEvents()">
+            <option value="">All Events</option>
+            <option value="false">Unprocessed</option>
+            <option value="true">Processed</option>
+          </select>
+          <select id="webhookTypeFilter" onchange="loadWebhookEvents()">
+            <option value="">All Types</option>
+            <option value="checkout.session.completed">Checkout Completed</option>
+            <option value="customer.subscription.created">Subscription Created</option>
+            <option value="customer.subscription.updated">Subscription Updated</option>
+            <option value="customer.subscription.deleted">Subscription Deleted</option>
+            <option value="invoice.paid">Invoice Paid</option>
+            <option value="invoice.payment_failed">Payment Failed</option>
+          </select>
+          <button class="btn btn-secondary" onclick="loadWebhookEvents()">Refresh</button>
+        </div>
+
+        <div id="webhookEventsList" class="webhook-events-list"></div>
       </div>
 
       <!-- USERS TAB -->
       <div id="usersTab" class="admin-tab-content hidden">
-        <h2>User Management</h2>
+        <h2>👤 User Management</h2>
         <div id="usersList" class="users-list"></div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="createProductModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Create Product</h3>
+        <form id="createProductForm" onsubmit="handleCreateProduct(event)">
+          <div class="form-group">
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName" required>
+          </div>
+          <div class="form-group">
+            <label for="productDescription">Description</label>
+            <textarea id="productDescription" rows="3"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('createProductModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="createPriceModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Create Price</h3>
+        <form id="createPriceForm" onsubmit="handleCreatePrice(event)">
+          <input type="hidden" id="priceProductId">
+          <div class="form-group">
+            <label for="priceAmount">Amount (in cents)</label>
+            <input type="number" id="priceAmount" required>
+            <small>$29.99 = 2999 cents</small>
+          </div>
+          <div class="form-group">
+            <label for="priceInterval">Billing Interval</label>
+            <select id="priceInterval" required>
+              <option value="month">Monthly</option>
+              <option value="year">Yearly</option>
+              <option value="week">Weekly</option>
+              <option value="day">Daily</option>
+              <option value="">One-time</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="priceTrialDays">Trial Days (optional)</label>
+            <input type="number" id="priceTrialDays" min="0">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('createPriceModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="confirmModal" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="confirmTitle">Confirm Action</h3>
+        <p id="confirmMessage"></p>
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
+          <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+        </div>
       </div>
     </div>
 
