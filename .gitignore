@@ -1,6 +1,9 @@
 # Gitar AI auto-apply configuration
 .gitar/
 
+# Node modules
+node_modules/
+
 # Backend
 backend/node_modules/
 backend/dist/
