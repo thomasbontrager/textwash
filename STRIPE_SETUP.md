@@ -59,7 +59,7 @@ Copy Price ID: `price_xxxxx` (starts with `pro_yearly_99usd`)
 
 1. Go to Developers → Webhooks
 2. Click "Add an endpoint"
-3. Endpoint URL: `https://yourdomain.com/api/webhooks/webhook`
+3. Endpoint URL: `https://yourdomain.com/api/stripe/webhook`
 4. Events to send:
    - `customer.subscription.created`
    - `customer.subscription.updated`
@@ -209,7 +209,7 @@ When ready for production:
 
 1. Check endpoint is publicly accessible:
    ```bash
-   curl https://yourdomain.com/api/webhooks/webhook
+   curl https://yourdomain.com/api/stripe/webhook
    ```
 
 2. Verify webhook secret in code and Stripe match:

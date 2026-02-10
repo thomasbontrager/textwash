@@ -204,8 +204,6 @@ The script will:
 
 ### Option 2: Manual Setup
 
-### Option 2: Manual Setup
-
 ```bash
 cd backend
 
