@@ -30,6 +30,13 @@ function showPage(pageId) {
   if (page) {
     page.classList.remove('hidden');
     window.scrollTo(0, 0);
+    
+    // Load data when showing specific pages
+    if (pageId === 'accountPage') {
+      loadSubscriptionInfo();
+    } else if (pageId === 'adminPage') {
+      // Default to stripe tab, but don't reload users yet
+    }
   }
 }
 
@@ -276,6 +283,11 @@ function switchAdminTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
   document.getElementById(tab + 'Tab')?.classList.remove('hidden');
   event.target.classList.add('active');
+  
+  // Load data when switching to users tab
+  if (tab === 'users') {
+    loadUsers();
+  }
 }
 
 async function handleStripeConfig(event) {
@@ -398,3 +410,6 @@ window.cancelSubscription = cancelSubscription;
 window.openStripePortal = openStripePortal;
 window.switchAdminTab = switchAdminTab;
 window.handleStripeConfig = handleStripeConfig;
+window.loadUsers = loadUsers;
+window.grantProAccess = grantProAccess;
+window.revokeAccess = revokeAccess;
