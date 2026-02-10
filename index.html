@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>TextWash — Universal Text Cleaner</title>
+  <title>TextWash — Professional Text Cleaner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Favicon -->
@@ -18,39 +18,329 @@
 </head>
 <body>
 
-  <!-- HERO / HEADER -->
-  <header class="hero">
-    <img src="assets/logo.png" alt="TextWash logo" class="logo">
+  <!-- ===== HOME PAGE ===== -->
+  <div id="homePage" class="page">
+    <!-- HERO / HEADER -->
+    <header class="hero">
+      <img src="assets/logo.png" alt="TextWash logo" class="logo">
+      <p class="tagline">Universal Text Cleaner</p>
+      <p class="subtitle">Professional text cleaning. AI when you need it.</p>
+      <div class="cta-buttons">
+        <button id="startFreeBtn" class="btn btn-primary">Start Free</button>
+        <button id="viewPricingBtn" class="btn btn-secondary">View Pricing</button>
+      </div>
+    </header>
 
-    <p class="tagline">Universal Text Cleaner</p>
+    <!-- FEATURES -->
+    <section class="features">
+      <div class="feature">
+        <h3>✨ Basic Cleaning</h3>
+        <p>Normalize whitespace, fix punctuation, and clean text instantly on all plans</p>
+      </div>
+      <div class="feature">
+        <h3>🤖 AI Features</h3>
+        <p>Pro plan includes spelling correction, grammar fixes, and smart rewrites</p>
+      </div>
+      <div class="feature">
+        <h3>🔒 100% Local</h3>
+        <p>No uploads, no tracking, no data collection. Pure local processing.</p>
+      </div>
+    </section>
 
-    <p class="subtitle">
-      Paste messy text. One click. Clean output.
-    </p>
-  </header>
+    <!-- FOOTER -->
+    <footer>
+      <p>© 2026 TextWash • Built by Thomas Bontrager</p>
+    </footer>
+  </div>
 
-  <!-- APP -->
-  <main class="app">
-    <textarea id="input" placeholder="Paste your messy text here..."></textarea>
+  <!-- ===== PRICING PAGE ===== -->
+  <div id="pricingPage" class="page hidden">
+    <header class="section-header">
+      <button class="back-btn" onclick="showPage('homePage')">← Back</button>
+      <h1>Choose Your Plan</h1>
+      <p>Start free. Upgrade anytime. No credit card required.</p>
+    </header>
 
-    <button id="cleanBtn">Clean Text</button>
+    <div class="pricing-container">
+      <!-- FREE PLAN -->
+      <div class="pricing-card">
+        <h3>Free</h3>
+        <p class="price">$0<span>/year</span></p>
+        <p class="desc">No credit card required</p>
+        <button class="btn btn-secondary" onclick="startPlan('free')">Get Started</button>
+        <ul class="features-list">
+          <li>✓ Basic text cleaning</li>
+          <li>✓ Whitespace normalization</li>
+          <li>✓ Punctuation fixes</li>
+          <li>✗ No AI features</li>
+        </ul>
+      </div>
 
-    <textarea id="output" placeholder="Clean text appears here..." readonly></textarea>
+      <!-- STARTER PLAN -->
+      <div class="pricing-card">
+        <h3>Starter</h3>
+        <p class="price">$29<span>/year</span></p>
+        <p class="desc">14-day free trial</p>
+        <button class="btn btn-primary" onclick="startPlan('starter')">Start Free Trial</button>
+        <ul class="features-list">
+          <li>✓ Everything in Free</li>
+          <li>✓ Enhanced local cleaning</li>
+          <li>✓ Priority support</li>
+          <li>✗ No AI features</li>
+        </ul>
+      </div>
 
-    <button id="copyBtn">Copy Clean Text</button>
-  </main>
+      <!-- PRO PLAN -->
+      <div class="pricing-card best-value">
+        <div class="badge">⭐ Best Value</div>
+        <h3>Pro</h3>
+        <p class="price">$99<span>/year</span></p>
+        <p class="desc">14-day free trial • <strong>$8.25/month</strong></p>
+        <button class="btn btn-accent" onclick="startPlan('pro')">Start Free Trial</button>
+        <ul class="features-list">
+          <li>✓ Everything in Starter</li>
+          <li>✓ AI spelling & grammar</li>
+          <li>✓ Smart rewrite modes</li>
+          <li>✓ Context-aware AI</li>
+          <li>✓ All future AI upgrades</li>
+        </ul>
+      </div>
+    </div>
 
-  <!-- BUY -->
-  <section class="buy">
-    <p>❤️ Runs 100% locally. No tracking. No uploads.</p>
-    <a href="#" class="buy-btn">Buy TextWash ($5)</a>
-  </section>
+    <!-- COMPARISON TABLE -->
+    <section class="comparison-table">
+      <h2>Full Feature Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Free</th>
+            <th>Starter</th>
+            <th>Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Basic cleaning</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Enhanced cleaning</td>
+            <td>✗</td>
+            <td>✓</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Priority support</td>
+            <td>✗</td>
+            <td>✓</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>AI spelling & grammar</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Smart rewrites</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Context-aware AI</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Future AI upgrades</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
-  <!-- FOOTER -->
-  <footer>
-    <p>© 2026 TextWash • Built by Thomas Bontrager</p>
-  </footer>
+    <footer>
+      <p>© 2026 TextWash • Built by Thomas Bontrager</p>
+    </footer>
+  </div>
 
-  <script src="app.js"></script>
+  <!-- ===== AUTH PAGE ===== -->
+  <div id="authPage" class="page hidden">
+    <div class="auth-container">
+      <div class="auth-card">
+        <img src="assets/logo.png" alt="TextWash" class="auth-logo">
+        <h1>Welcome to TextWash</h1>
+
+        <div class="auth-tabs">
+          <button class="tab-btn active" onclick="switchAuthTab('login')">Sign In</button>
+          <button class="tab-btn" onclick="switchAuthTab('signup')">Sign Up</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" required placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary full">Sign In</button>
+          <p class="error" id="loginError"></p>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="signupForm" class="auth-form" onsubmit="handleSignup(event)">
+          <div class="form-group">
+            <label for="signupEmail">Email</label>
+            <input type="email" id="signupEmail" required placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label for="signupPassword">Password</label>
+            <input type="password" id="signupPassword" required placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label for="signupPassword2">Confirm Password</label>
+            <input type="password" id="signupPassword2" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary full">Create Account</button>
+          <p class="error" id="signupError"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD PAGE ===== -->
+  <div id="dashboardPage" class="page hidden">
+    <header class="dashboard-header">
+      <div class="header-left">
+        <img src="assets/logo.png" alt="TextWash" class="logo-small">
+        <h1>TextWash</h1>
+      </div>
+      <div class="header-right">
+        <span id="userPlanBadge" class="plan-badge">Free</span>
+        <button class="btn btn-small" onclick="showAccountMenu()">Account</button>
+        <div id="accountMenu" class="account-menu hidden">
+          <a href="#" onclick="showPage('accountPage')">Manage Account</a>
+          <a href="#" onclick="handleLogout()">Sign Out</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="app">
+      <textarea id="input" placeholder="Paste your messy text here..."></textarea>
+
+      <div class="button-group">
+        <button id="cleanBtn" class="btn btn-primary">Clean Text</button>
+        <div id="aiButtonsGroup" class="hidden">
+          <button id="aiSpellBtn" class="btn btn-accent">AI: Spelling & Grammar</button>
+          <button id="aiRewriteBtn" class="btn btn-accent">AI: Rewrite</button>
+        </div>
+      </div>
+
+      <textarea id="output" placeholder="Clean text appears here..." readonly></textarea>
+
+      <button id="copyBtn" class="btn btn-secondary">Copy Clean Text</button>
+    </main>
+
+    <section class="upgrade-prompt" id="upgradePrompt">
+      <p>🚀 Upgrade to <strong>Pro</strong> to unlock AI features ($99/year)</p>
+      <button class="btn btn-accent" onclick="showPage('pricingPage')">See Plans</button>
+    </section>
+
+    <footer>
+      <p>© 2026 TextWash • Built by Thomas Bontrager</p>
+    </footer>
+  </div>
+
+  <!-- ===== ACCOUNT PAGE ===== -->
+  <div id="accountPage" class="page hidden">
+    <header class="section-header">
+      <button class="back-btn" onclick="showPage('dashboardPage')">← Back</button>
+      <h1>Account Settings</h1>
+    </header>
+
+    <div class="account-container">
+      <section class="account-section">
+        <h2>Subscription</h2>
+        <div id="subscriptionInfo"></div>
+        <button id="cancelSubBtn" class="btn btn-danger" onclick="cancelSubscription()">Cancel Subscription</button>
+      </section>
+
+      <section class="account-section">
+        <h2>Billing Portal</h2>
+        <p>Manage your payment methods and subscription from the Stripe portal</p>
+        <button class="btn btn-secondary" onclick="openStripePortal()">Open Billing Portal</button>
+      </section>
+
+      <section class="account-section">
+        <h2>Sign Out</h2>
+        <button class="btn btn-secondary" onclick="handleLogout()">Sign Out</button>
+      </section>
+    </div>
+
+    <footer>
+      <p>© 2026 TextWash • Built by Thomas Bontrager</p>
+    </footer>
+  </div>
+
+  <!-- ===== ADMIN PANEL ===== -->
+  <div id="adminPage" class="page hidden">
+    <header class="admin-header">
+      <h1>Admin Control Panel</h1>
+      <button class="back-btn" onclick="handleLogout()">Sign Out</button>
+    </header>
+
+    <div class="admin-container">
+      <!-- TAB NAVIGATION -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('stripe')">Stripe Config</button>
+        <button class="admin-tab" onclick="switchAdminTab('users')">Users</button>
+      </div>
+
+      <!-- STRIPE CONFIG TAB -->
+      <div id="stripeTab" class="admin-tab-content active">
+        <h2>Stripe Configuration</h2>
+        <form id="stripeConfigForm" onsubmit="handleStripeConfig(event)">
+          <div class="form-group">
+            <label for="publishableKey">Publishable Key</label>
+            <input type="text" id="publishableKey" placeholder="pk_test_..." required>
+          </div>
+          <div class="form-group">
+            <label for="secretKey">Secret Key</label>
+            <input type="password" id="secretKey" placeholder="sk_test_...">
+            <small>Leave blank to keep current key</small>
+          </div>
+          <div class="form-group">
+            <label for="webhookSecret">Webhook Secret</label>
+            <input type="password" id="webhookSecret" placeholder="whsec_...">
+            <small>Leave blank to keep current secret</small>
+          </div>
+          <button type="submit" class="btn btn-primary">Save Configuration</button>
+          <p class="error" id="configError"></p>
+        </form>
+      </div>
+
+      <!-- USERS TAB -->
+      <div id="usersTab" class="admin-tab-content hidden">
+        <h2>User Management</h2>
+        <div id="usersList" class="users-list"></div>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 TextWash • Admin Panel</p>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
