@@ -1,9 +1,14 @@
-import { loadStripe } from '@stripe/stripe-js';
-
 // CONFIG
 const API_URL = 'http://localhost:3000/api';
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Sz8jsRlPGLngNpAf33rUQCQmgqhhI8cU46n6Y9fJHTAvD5ugQ2s2n4WSPgePtigmnnWncSkO24aymeWSO3RCH6O00wleAK6c3';
-const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+let stripePromise = null;
+try {
+  if (typeof Stripe !== 'undefined') {
+    stripePromise = Stripe(STRIPE_PUBLISHABLE_KEY);
+  }
+} catch (e) {
+  console.warn('Stripe not available:', e);
+}
 
 // STATE
 let currentUser = null;
@@ -179,9 +184,8 @@ async function startPlan(plan) {
 
     if (response.ok) {
       const { sessionId, url } = await response.json();
-      const stripe = await stripePromise;
-      if (stripe && sessionId) {
-        const result = await stripe.redirectToCheckout({ sessionId });
+      if (stripePromise && sessionId) {
+        const result = await stripePromise.redirectToCheckout({ sessionId });
         if (result.error) {
           alert(result.error.message || 'Stripe checkout failed');
         }
