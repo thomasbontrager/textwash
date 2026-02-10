@@ -7,6 +7,9 @@ import { AuthRequest } from '../types';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Configuration
+const TRIAL_PERIOD_DAYS = 14;
+
 // Initialize Stripe
 let stripe: Stripe | null = null;
 
@@ -106,7 +109,7 @@ router.post('/create-checkout-session', async (req: AuthRequest, res) => {
         plan
       },
       subscription_data: {
-        trial_period_days: 14,
+        trial_period_days: TRIAL_PERIOD_DAYS,
         metadata: {
           userId,
           plan
