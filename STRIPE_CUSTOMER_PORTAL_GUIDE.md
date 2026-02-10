@@ -129,7 +129,7 @@ User redirected to Stripe Customer Portal
          ↓
 User makes changes (cancel, upgrade, update card, etc.)
          ↓
-Stripe sends webhook to: /api/webhooks/webhook
+Stripe sends webhook to: /api/stripe/webhook
          ↓
 Webhook updates subscription in database
          ↓
@@ -246,7 +246,7 @@ This gives users one unified experience for ALL billing operations.
 - Check you're using TEST mode price IDs (start with `price_test_...` or use test dashboard)
 
 ### Changes in portal don't reflect in app
-- Check webhook is receiving events: `stripe listen --forward-to localhost:3000/api/webhooks/webhook`
+- Check webhook is receiving events: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
 - Verify `STRIPE_WEBHOOK_SECRET` matches the one from Stripe CLI
 
 ### "Return to account" link doesn't work

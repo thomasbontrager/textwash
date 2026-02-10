@@ -242,7 +242,7 @@ Update Stripe API keys.
 
 ## Webhook Endpoints
 
-### POST /api/webhooks/webhook
+### POST /api/stripe/webhook
 
 Receive Stripe webhook events.
 

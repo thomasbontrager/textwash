@@ -45,8 +45,8 @@
   - [ ] Secret key (sk_test_...)
   
 - [ ] Products created in Stripe:
-  - [ ] CleanText Starter ($29/year, 14-day trial)
-  - [ ] CleanText Pro ($99/year, 14-day trial)
+  - [ ] TextWash Starter ($29/year, 14-day trial)
+  - [ ] TextWash Pro ($99/year, 14-day trial)
   
 - [ ] Backend `.env` updated:
   - [ ] STRIPE_SECRET_KEY set
@@ -57,7 +57,7 @@
   
 - [ ] Webhook endpoint setup (for testing, use ngrok):
   - [ ] ngrok running: `ngrok http 3000`
-  - [ ] Webhook endpoint created in Stripe: `http://ngrok-url/api/webhooks/webhook`
+  - [ ] Webhook endpoint created in Stripe: `http://ngrok-url/api/stripe/webhook`
   - [ ] STRIPE_WEBHOOK_SECRET obtained
   - [ ] Backend `.env` updated with webhook secret
 

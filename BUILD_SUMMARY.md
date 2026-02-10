@@ -178,7 +178,7 @@
 ## 📁 Project Structure
 
 ```
-cleantext/
+textwash/
 ├── index.html                  # Multi-page SPA
 ├── style.css                   # Dark SaaS theme
 ├── app.js                      # Frontend logic (auth, routing, subscriptions)
@@ -288,7 +288,7 @@ User → Click "Start Trial" → POST /api/subscriptions/create-checkout-session
        → Backend creates Stripe session → Returns checkout URL
 Frontend → Redirect to Stripe Checkout
 User → Enters payment info → Stripe processes
-Stripe Webhook → POST /api/webhooks/webhook
+Stripe Webhook → POST /api/stripe/webhook
 Backend → Parse webhook → Update subscription in DB
 Database → User plan changed to STARTER/PRO
 Frontend → Next login shows new plan

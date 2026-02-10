@@ -25,10 +25,10 @@ In Stripe Dashboard:
 
 ### 3. Create Products
 
-#### Product 1: CleanText Starter
+#### Product 1: TextWash Starter
 
 1. Go to Products → New Product
-2. Name: `CleanText Starter`
+2. Name: `TextWash Starter`
 3. Description: `Professional text cleaning with priority support`
 4. Add price:
    - Billing period: Yearly
@@ -39,10 +39,10 @@ In Stripe Dashboard:
 
 Copy Price ID: `price_xxxxx` (starts with `starter_yearly_29usd`)
 
-#### Product 2: CleanText Pro
+#### Product 2: TextWash Pro
 
 1. Go to Products → New Product
-2. Name: `CleanText Pro`
+2. Name: `TextWash Pro`
 3. Description: `Professional text cleaning with AI features`
 4. Add price:
    - Billing period: Yearly
@@ -59,7 +59,7 @@ Copy Price ID: `price_xxxxx` (starts with `pro_yearly_99usd`)
 
 1. Go to Developers → Webhooks
 2. Click "Add an endpoint"
-3. Endpoint URL: `https://yourdomain.com/api/webhooks/webhook`
+3. Endpoint URL: `https://yourdomain.com/api/stripe/webhook`
 4. Events to send:
    - `customer.subscription.created`
    - `customer.subscription.updated`
@@ -209,7 +209,7 @@ When ready for production:
 
 1. Check endpoint is publicly accessible:
    ```bash
-   curl https://yourdomain.com/api/webhooks/webhook
+   curl https://yourdomain.com/api/stripe/webhook
    ```
 
 2. Verify webhook secret in code and Stripe match:

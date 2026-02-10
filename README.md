@@ -204,8 +204,6 @@ The script will:
 
 ### Option 2: Manual Setup
 
-### Option 2: Manual Setup
-
 ```bash
 cd backend
 
@@ -275,7 +273,7 @@ Create a user with ADMIN role:
 INSERT INTO "User" (id, email, "passwordHash", role, "createdAt", "updatedAt")
 VALUES (
   'unique-uuid',
-  'admin@cleantext.app',
+  'admin@textwash.app',
   '$2a$12$...hash',
   'ADMIN',
   NOW(),
