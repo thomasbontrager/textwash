@@ -867,18 +867,36 @@ function mapStripeStatus(stripeStatus: string): SubscriptionStatus {
 
 /**
  * Map Stripe price ID to internal plan
- * This should be configured based on your actual price IDs
- * For now, we'll try to infer from metadata or use a default mapping
+ * 
+ * This mapping should be configured based on your actual Stripe price IDs.
+ * You can either:
+ * 1. Store the plan in Stripe price metadata
+ * 2. Maintain a mapping in environment variables
+ * 3. Store in database with price records
+ * 
+ * Example metadata-based approach:
+ * When creating prices, set metadata.plan = "PRO" or "STARTER"
  */
 function mapStripePriceToPlan(priceId: string): SubscriptionPlan {
-  // TODO: Implement actual price -> plan mapping
-  // This could be done via:
-  // 1. Price metadata
-  // 2. Database lookup
-  // 3. Environment variable mapping
+  // Try to get price from database with metadata
+  // This is a synchronous function, so we'll use a fallback approach
   
-  // For now, return a sensible default
-  // In production, you'd query the database or use metadata
+  // TODO: Configure this mapping based on your Stripe price IDs
+  // Option 1: Environment variable mapping
+  const priceMapping: Record<string, SubscriptionPlan> = {
+    // Example: 'price_xxxxx': SubscriptionPlan.PRO,
+    // Add your actual Stripe price IDs here
+  };
+
+  if (priceMapping[priceId]) {
+    return priceMapping[priceId];
+  }
+
+  // Option 2: Use Stripe price metadata (requires async lookup)
+  // This would need to be refactored to async
+  
+  // Default fallback - log warning
+  console.warn(`No plan mapping found for price ${priceId}, defaulting to STARTER`);
   return SubscriptionPlan.STARTER;
 }
 
@@ -929,9 +947,31 @@ export async function getBillingMetrics() {
       },
     });
 
-    // Calculate MRR (Monthly Recurring Revenue) - simplified
-    // In production, you'd calculate this from actual price amounts
-    const mrr = activeSubscriptions * 29; // Placeholder calculation
+    // Calculate MRR (Monthly Recurring Revenue) from actual invoices
+    // Get all paid invoices from the last 30 days to estimate MRR
+    const recentInvoices = await prisma.invoice.findMany({
+      where: {
+        paid: true,
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+    });
+
+    // Calculate average monthly revenue from recent invoices
+    let mrr = 0;
+    if (recentInvoices.length > 0) {
+      const totalRevenue = recentInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+      mrr = Math.round(totalRevenue / 100); // Convert from cents to dollars
+    } else {
+      // Fallback: Estimate based on active subscriptions
+      // NOTE: This is a rough estimate. In production, you should:
+      // 1. Store price amounts in your database
+      // 2. Query Stripe for actual subscription amounts
+      // 3. Use Stripe's reporting API for accurate MRR
+      console.warn('No recent invoices found, MRR calculation is estimated');
+      mrr = activeSubscriptions * 29; // Placeholder: assumes $29/month average
+    }
 
     return {
       activeSubscriptions,

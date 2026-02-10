@@ -847,7 +847,6 @@ function searchCustomers() {
 }
 
 // Update switchAdminTab to load data
-const originalSwitchAdminTab = window.switchAdminTab;
 window.switchAdminTab = function(tabName) {
   // Switch tabs
   document.querySelectorAll('.admin-tab').forEach(tab => {
