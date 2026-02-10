@@ -4,9 +4,13 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { globalLimiter } from './middleware/rateLimit';
 import { startAgentHotReload } from './services/agentRegistry';
+import { initializeStripe } from './services/stripe';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
+import billingRoutes from './routes/billing';
+import adminBillingRoutes from './routes/adminBilling';
+import webhookRoutes from './routes/webhooks';
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +24,10 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3001',
   credentials: true
 }));
+
+// Webhook route needs raw body for signature verification
+// Must be registered BEFORE express.json()
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,6 +43,9 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/billing', adminBillingRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/webhooks', webhookRoutes);
 app.use('/api', apiRoutes);
 
 // 404 handler
@@ -54,6 +65,18 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     console.log('Database connected');
+    
+    // Initialize Stripe if credentials are configured
+    const adminProfile = await prisma.adminProfile.findFirst({
+      where: { stripeSecretKey: { not: null } },
+    });
+    
+    if (adminProfile?.stripeSecretKey) {
+      initializeStripe(adminProfile.stripeSecretKey);
+      console.log('Stripe initialized');
+    } else {
+      console.log('⚠️  Stripe not configured. Configure in admin settings.');
+    }
     
     // Start agent hot-reload in development
     if (process.env.NODE_ENV === 'development') {
@@ -76,17 +99,26 @@ async function startServer() {
 ║   - POST /api/v1/analyze                                   ║
 ║   - POST /api/v1/moderate                                  ║
 ║                                                            ║
+║   Billing API:                                             ║
+║   - POST /api/billing/checkout-session                     ║
+║   - POST /api/billing/portal-session                       ║
+║   - POST /api/billing/subscription/cancel                  ║
+║   - POST /api/webhooks/stripe                              ║
+║                                                            ║
 ║   Admin API:                                               ║
 ║   - POST /api/admin/agents/reload                          ║
 ║   - PUT  /api/admin/rules/:agentName                       ║
 ║   - POST /api/admin/policies                               ║
 ║   - POST /api/admin/api-keys                               ║
+║   - GET  /api/admin/billing/metrics                        ║
+║   - GET  /api/admin/billing/subscriptions                  ║
 ║                                                            ║
 ║   Features:                                                ║
 ║   ✅ Self-updating agent rules                             ║
 ║   ✅ LLM hybrid agents (optional)                          ║
 ║   ✅ Agent hot-reload                                      ║
 ║   ✅ Enterprise policy layers                              ║
+║   ✅ Stripe billing integration                            ║
 ║   ✅ API key authentication                                ║
 ║   ✅ Rate limiting                                         ║
 ║   ✅ Usage tracking                                        ║
