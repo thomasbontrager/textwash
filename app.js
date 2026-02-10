@@ -141,7 +141,14 @@ function switchAuthTab(tab) {
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tab + 'Form')?.classList.add('active');
-  event.target.classList.add('active');
+  
+  // Find and activate the correct tab button
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  tabButtons.forEach(btn => {
+    if (btn.textContent?.includes(tab === 'login' ? 'Sign In' : 'Sign Up')) {
+      btn.classList.add('active');
+    }
+  });
 }
 
 // DASHBOARD
@@ -252,7 +259,12 @@ async function openStripePortal() {
 
 async function loadSubscriptionInfo() {
   const info = document.getElementById('subscriptionInfo');
-  if (!currentSubscription) return;
+  if (!info) return;
+  
+  if (!currentSubscription) {
+    info.innerHTML = '<p>No subscription information available</p>';
+    return;
+  }
 
   let html = `<p><strong>Plan:</strong> ${currentSubscription.plan}</p>`;
   if (currentSubscription.currentPeriodEnd) {
@@ -282,7 +294,14 @@ function switchAdminTab(tab) {
   document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
   document.getElementById(tab + 'Tab')?.classList.remove('hidden');
-  event.target.classList.add('active');
+  
+  // Find and activate the correct tab button
+  const tabButtons = document.querySelectorAll('.admin-tab');
+  tabButtons.forEach(btn => {
+    if (btn.textContent?.toLowerCase().includes(tab.toLowerCase())) {
+      btn.classList.add('active');
+    }
+  });
   
   // Load data when switching to users tab
   if (tab === 'users') {
@@ -378,6 +397,32 @@ function attachEventListeners() {
     const input = document.getElementById('input');
     const output = document.getElementById('output');
     output.value = cleanText(input.value);
+  });
+  
+  document.getElementById('aiSpellBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    
+    if (!input.value) {
+      alert('Please enter some text first');
+      return;
+    }
+    
+    // TODO: Implement AI spell check via API
+    alert('AI spelling & grammar feature requires backend API integration');
+  });
+  
+  document.getElementById('aiRewriteBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    
+    if (!input.value) {
+      alert('Please enter some text first');
+      return;
+    }
+    
+    // TODO: Implement AI rewrite via API
+    alert('AI rewrite feature requires backend API integration');
   });
 
   document.getElementById('copyBtn')?.addEventListener('click', () => {
