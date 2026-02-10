@@ -33,10 +33,11 @@ This platform now includes an **advanced agent system** with:
 
 ### Frontend Only (No Backend)
 ```bash
-# Serve static files
-python3 -m http.server 3001
-# or
-npx http-server -p 3001
+# Install dependencies (first time only)
+npm install
+
+# Start dev server
+npm run dev
 
 # Open http://localhost:3001
 ```
@@ -50,7 +51,8 @@ npm run dev
 
 # 2. In another terminal, serve frontend
 cd ..
-python3 -m http.server 3001
+npm install  # First time only
+npm run dev
 
 # Frontend: http://localhost:3001
 # Backend API: http://localhost:3000
