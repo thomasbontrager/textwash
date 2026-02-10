@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String
+  role          Role          @default(USER)
+  stripeId      String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  subscription  Subscription?
+  adminProfile  AdminProfile?
+  apiKeys       ApiKey[]
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+  agentExecutions AgentExecution[]
+}
+
+model Subscription {
+  id                    String              @id @default(cuid())
+  userId                String              @unique
+  user                  User                @relation(fields: [userId], references: [id])
+  plan                  SubscriptionPlan    @default(FREE)
+  status                SubscriptionStatus  @default(ACTIVE)
+  stripeSubscriptionId  String?             @unique
+  stripeCustomerId      String?
+  trialEndsAt           DateTime?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model AdminProfile {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id])
+  stripePublishableKey    String?
+  stripeSecretKey         String?
+  stripeWebhookSecret     String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Organization {
+  id          String    @id @default(cuid())
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  users       User[]
+  policies    Policy[]
+  apiKeys     ApiKey[]
+}
+
+model AgentRule {
+  id          String   @id @default(cuid())
+  agentName   String
+  version     Int      @default(1)
+  enabled     Boolean  @default(true)
+  rules       Json
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([agentName, version])
+  @@index([agentName, enabled])
+}
+
+model Policy {
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  name            String
+  type            String
+  rules           Json
+  enabled         Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([organizationId, enabled])
+}
+
+model ApiKey {
+  id              String        @id @default(cuid())
+  key             String        @unique
+  name            String
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  rateLimit       Int           @default(1000)
+  enabledAgents   String[]
+  enabled         Boolean       @default(true)
+  lastUsedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  usageRecords    UsageRecord[]
+  
+  @@index([key, enabled])
+  @@index([organizationId])
+}
+
+model UsageRecord {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  apiKey      ApiKey   @relation(fields: [apiKeyId], references: [id])
+  endpoint    String
+  agentsUsed  String[]
+  timestamp   DateTime @default(now())
+  
+  @@index([apiKeyId, timestamp])
+}
+
+model AgentExecution {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  agentName       String
+  input           String
+  output          String
+  changed         Boolean
+  agentsApplied   String[]
+  confidenceScore Float?
+  duration        Int
+  timestamp       DateTime @default(now())
+  
+  @@index([userId, timestamp])
+  @@index([agentName, timestamp])
+}

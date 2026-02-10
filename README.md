@@ -1,6 +1,62 @@
-# TextWash - Production-Ready SaaS Platform
+# TextWash - Advanced Text Processing Platform
 
-Professional text cleaning with AI features. 100% local processing, no tracking.
+Professional text cleaning with AI features, self-updating agents, and enterprise-grade B2B API.
+
+## ✨ What's New
+
+This platform now includes an **advanced agent system** with:
+
+🧠 **Self-Updating Rules** - Rules live in database, update without restart
+🤖 **LLM Hybrid Agents** - Optional AI with deterministic fallback
+🔄 **Hot-Reload** - Update agents live in production
+🏢 **Enterprise Policies** - Organization-scoped compliance rules
+🌐 **B2B API Platform** - Full API with key auth, rate limiting, usage tracking
+
+## 🚀 Architecture
+
+### Frontend (Static HTML/CSS/JS)
+- User interface with dark SaaS theme
+- Client-side text cleaning
+- Stripe checkout integration
+- Works standalone or with backend
+
+### Backend (Node.js/TypeScript/Express)
+- **8 Intelligent Agents** (4 basic + 4 hybrid AI)
+- **Self-updating rules** with database storage
+- **Hot-reload capability** for zero-downtime updates
+- **Enterprise policy engine** for compliance
+- **B2B API endpoints** with authentication
+- **Rate limiting & usage tracking** for billing
+- **PostgreSQL** with Prisma ORM
+
+## 🎯 Quick Start
+
+### Frontend Only (No Backend)
+```bash
+# Serve static files
+python3 -m http.server 3001
+# or
+npx http-server -p 3001
+
+# Open http://localhost:3001
+```
+
+### Full Stack (Frontend + Backend)
+```bash
+# 1. Start backend
+cd backend
+./setup.sh  # First time only
+npm run dev
+
+# 2. In another terminal, serve frontend
+cd ..
+python3 -m http.server 3001
+
+# Frontend: http://localhost:3001
+# Backend API: http://localhost:3000
+```
+
+See **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** for detailed setup.
 
 ## 🚀 Features
 
@@ -21,99 +77,153 @@ Professional text cleaning with AI features. 100% local processing, no tracking.
 - Context-aware AI rewriting
 - All future AI upgrades included
 
+**Enterprise Plan (Custom)**
+- Everything in Pro
+- Custom policies and compliance rules
+- Dedicated API access
+- Self-updating agent rules
+- White-label options
+- SLA support
+
 ## 📁 Project Structure
 
 ```
-cleantext/
+textwash/
 ├── index.html              # Multi-page SPA
 ├── style.css               # Dark SaaS theme
-├── app.js                  # Frontend logic (auth, routing, subscriptions)
+├── app.js                  # Frontend logic
 ├── assets/                 # Logo, favicon
+├── INTEGRATION_GUIDE.md    # Full integration guide
 └── backend/
+    ├── README.md           # Backend quick start
+    ├── IMPLEMENTATION_GUIDE.md  # Detailed architecture
+    ├── API_EXAMPLES.md     # API usage examples
+    ├── setup.sh            # Easy setup script
     ├── src/
-    │   ├── server.ts       # Express setup
+    │   ├── server.ts       # Express server
+    │   ├── types/          # TypeScript definitions
     │   ├── middleware/
-    │   │   └── auth.ts     # JWT authentication
+    │   │   ├── auth.ts     # JWT & API key auth
+    │   │   └── rateLimit.ts  # Rate limiting
     │   ├── routes/
-    │   │   ├── auth.ts     # Signup, login, verification
-    │   │   ├── subscription.ts  # Plans, checkout, cancellation
-    │   │   ├── admin.ts    # User management, Stripe config
-    │   │   └── webhooks.ts # Stripe webhook handling
-    │   └── services/
-    │       ├── auth.ts     # Auth logic
-    │       ├── subscription.ts  # Subscription logic
-    │       └── stripe.ts   # Stripe integration
+    │   │   ├── auth.ts     # Authentication
+    │   │   ├── admin.ts    # Admin management
+    │   │   └── api.ts      # Public B2B API
+    │   ├── services/
+    │   │   ├── ruleLoader.ts      # Self-updating rules
+    │   │   ├── llm.ts             # LLM with safety
+    │   │   ├── agentRegistry.ts   # Hot-reload
+    │   │   └── policyService.ts   # Enterprise policies
+    │   └── agents/
+    │       ├── basicAgents.ts     # Deterministic agents
+    │       └── hybridAgents.ts    # AI-powered agents
     ├── prisma/
-    │   └── schema.prisma   # Database schema
+    │   ├── schema.prisma   # Database schema
+    │   └── seed.ts         # Initial data
     ├── package.json
     ├── tsconfig.json
-    ├── .env.example
-    └── setup.sh
+    └── .env.example
 ```
 
-## 🔧 Quick Start
+## 🤖 Available Agents
 
-### 1. Backend Setup
+### Basic Agents (All Plans)
+- **WhitespaceNormalizer** - Clean whitespace and line breaks
+- **PunctuationNormalizer** - Fix quotes, dashes, spacing
+- **ProfanityTransformer** - Rule-based profanity filter
+- **ClarityTransformer** - Remove filler words
+
+### Hybrid AI Agents (PRO/Enterprise)
+- **HybridRewrite** - AI rewriting with fallback
+- **ProfessionalTone** - Convert to professional tone
+- **CasualTone** - Convert to casual tone  
+- **ConciseRewrite** - Make text more concise
+
+All agents support:
+- ✅ Self-updating rules
+- ✅ Hot-reload
+- ✅ Policy enforcement
+- ✅ Safety controls
+
+## 🌐 B2B API Platform
+
+### Public Endpoints
+
+```bash
+POST /api/v1/clean      # Text cleaning
+POST /api/v1/rewrite    # AI rewriting (PRO)
+POST /api/v1/analyze    # Text analysis
+POST /api/v1/moderate   # Content moderation
+```
+
+### Admin Endpoints
+
+```bash
+GET  /api/admin/agents           # List agents
+POST /api/admin/agents/reload    # Hot-reload
+PUT  /api/admin/rules/:name      # Update rules
+POST /api/admin/policies         # Create policy
+POST /api/admin/api-keys         # Create API key
+GET  /api/admin/usage            # Usage stats
+```
+
+See **[backend/API_EXAMPLES.md](./backend/API_EXAMPLES.md)** for usage examples.
+
+## 🔧 Setup Instructions
+
+### Option 1: Use Setup Script (Recommended)
 
 ```bash
 cd backend
+./setup.sh
+```
+
+The script will:
+1. Install dependencies
+2. Create `.env` from template
+3. Generate Prisma client
+4. Run database migrations
+5. Build TypeScript
+
+### Option 2: Manual Setup
+
+### Option 2: Manual Setup
+
+```bash
+cd backend
+
+# 1. Install dependencies
 npm install
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# 3. Setup database
 npm run prisma:generate
-```
-
-Create `.env` file:
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/cleantext
-JWT_SECRET=your-super-secret-key-min-32-characters
-NODE_ENV=development
-PORT=3000
-
-STRIPE_SECRET_KEY=sk_test_xxxxx
-STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-
-SENDGRID_API_KEY=SG.xxxxx (optional)
-ADMIN_EMAIL=admin@cleantext.app
-
-FRONTEND_URL=http://localhost:3001
-```
-
-### 2. Database Setup
-
-```bash
-# Create PostgreSQL database
-createdb cleantext
-
-# Run migrations
 npm run prisma:migrate
-```
+npm run prisma:seed
 
-### 3. Start Backend
-
-```bash
+# 4. Build and start
+npm run build
 npm run dev
 ```
 
 Backend runs on `http://localhost:3000`
 
-### 4. Frontend Setup
+For detailed setup instructions, see **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)**
 
-Create `frontend/.env`:
-```env
-API_URL=http://localhost:3000/api
-STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
-```
+## 📊 Database Schema
 
-Start a local server for the frontend:
-```bash
-# Using Python
-python -m http.server 3001
-
-# Using Node
-npx http-server -p 3001
-```
-
-Frontend runs on `http://localhost:3001`
+Key models:
+- **User** - Users with subscription plans
+- **Subscription** - Plan management (FREE/STARTER/PRO/ENTERPRISE)
+- **Organization** - Multi-tenant support
+- **AgentRule** - Self-updating rules with versioning
+- **Policy** - Enterprise policies
+- **ApiKey** - API authentication with rate limits
+- **UsageRecord** - Metered billing tracking
+- **AgentExecution** - Audit log
 
 ## 💳 Stripe Setup
 
@@ -123,13 +233,13 @@ Frontend runs on `http://localhost:3001`
 
 ### 2. Create Products in Stripe Dashboard
 
-**Product 1: CleanText Starter**
+**Product 1: TextWash Starter**
 - Recurring billing
 - Yearly interval
 - 14-day trial
 - Price: $29
 
-**Product 2: CleanText Pro**
+**Product 2: TextWash Pro**
 - Recurring billing
 - Yearly interval
 - 14-day trial
@@ -180,14 +290,152 @@ Access at: `http://localhost:3001` (if admin user)
 - **Stripe Config**: Manage Stripe API keys securely
 - **User Management**: View users, grant/revoke Pro access
 - **Subscription Status**: Monitor all active subscriptions
+- **Agent Management**: Update rules, reload agents, view execution logs
+- **Policy Management**: Create and manage enterprise policies
+- **API Keys**: Generate and manage B2B API keys
+- **Usage Analytics**: Track API usage for billing
+
+## 🔐 Security & Permissions
+
+### Authentication
+- **JWT Tokens** - User authentication with 30-day expiry
+- **API Keys** - B2B access with `tw_` prefix
+- **Rate Limiting** - Per-key limits with headers
+
+### Authorization
+- **User Role** - Standard access
+- **Admin Role** - Full management access
+- **Organization Scoping** - Multi-tenant isolation
+
+### Safety Controls
+- **LLM Timeouts** - Configurable (default 10s)
+- **Token Limits** - Prevent abuse (default 500)
+- **Output Validation** - Sanitize all LLM responses
+- **Deterministic Fallback** - Always safe operation
+
+## 🧪 Testing
+
+### Test Frontend
+```bash
+python3 -m http.server 3001
+# Visit http://localhost:3001
+```
+
+### Test Backend API
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Clean text
+curl -X POST http://localhost:3000/api/v1/clean \
+  -H "X-Api-Key: tw_your_key" \
+  -d '{"text": "  test  "}'
+```
+
+See **[backend/API_EXAMPLES.md](./backend/API_EXAMPLES.md)** for complete examples.
+
+## 📚 Documentation
+
+- **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** - Full integration guide
+- **[backend/README.md](./backend/README.md)** - Backend quick start
+- **[backend/IMPLEMENTATION_GUIDE.md](./backend/IMPLEMENTATION_GUIDE.md)** - Detailed architecture
+- **[backend/API_EXAMPLES.md](./backend/API_EXAMPLES.md)** - API usage examples
+- **[API.md](./API.md)** - Original API documentation
+
+## 🚢 Deployment
+
+### Frontend
+Deploy to Vercel, Netlify, or GitHub Pages:
+```bash
+# Static files work as-is
+# Update API_URL in app.js to point to backend
+```
+
+### Backend
+Deploy to Vercel, Railway, Render, or VPS:
+```bash
+cd backend
+npm run build
+npm start
+```
+
+Environment variables required:
+- `DATABASE_URL` - PostgreSQL connection
+- `JWT_SECRET` - Secure random string (32+ chars)
+- `STRIPE_*` - Stripe API keys (optional)
+- `LLM_*` - LLM configuration (optional)
+
+## 🎯 Use Cases
+
+### Use Case 1: SaaS Platform
+- Frontend for end users
+- Subscription management
+- Freemium model
+
+### Use Case 2: B2B API Provider
+- API-first approach
+- Organization-based billing
+- Enterprise policies
+
+### Use Case 3: Hybrid Model
+- Frontend for direct users
+- API for business customers
+- White-label options
+
+## 🔄 Agent System Features
+
+### Self-Updating Rules
+```bash
+# Update profanity map without restart
+PUT /api/admin/rules/ProfanityTransformer
+{
+  "rules": {
+    "map": {"damn": "darn", "hell": "heck"}
+  }
+}
+# ✅ Changes apply within 1 minute (cache TTL)
+```
+
+### Hot-Reload Agents
+```bash
+# Reload all agents live
+POST /api/admin/agents/reload
+# ✅ Zero downtime
+# ✅ New logic active immediately
+```
+
+### Enterprise Policies
+```bash
+# Apply compliance rules
+POST /api/admin/policies
+{
+  "organizationId": "org_123",
+  "rules": {
+    "forbid": ["casual", "emoji"],
+    "compliance": ["no-profanity"]
+  }
+}
+# ✅ Enforced on all API calls
+```
+
+### LLM Safety
+```typescript
+// Always has fallback
+try {
+  result = await llm.suggest(text);
+} catch {
+  result = deterministicFilter(text); // ✅ Safe fallback
+}
+```
 
 ## 🔐 Feature Gating
 
-All feature gating is enforced on the backend:
+Backend enforces all feature gating:
 
 ```typescript
 // Free/Starter users
 ❌ No AI endpoints available
+❌ No API access
 
 // Pro users
 ✅ Full AI access
