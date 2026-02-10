@@ -71,6 +71,8 @@ npm run dev
 
 See **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** for detailed setup.
 
+**Having trouble with port 3001?** See **[PORT_3001_GUIDE.md](./PORT_3001_GUIDE.md)** for troubleshooting.
+
 ## 🚀 Features
 
 **Free Plan**
