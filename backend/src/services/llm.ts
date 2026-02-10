@@ -56,7 +56,7 @@ export class LLMServiceImpl implements LLMService {
         throw new Error(`LLM API error: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json() as any;
       const suggestion = data.choices?.[0]?.message?.content || '';
       
       return this.validateOutput(suggestion);
