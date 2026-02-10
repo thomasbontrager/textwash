@@ -7,6 +7,8 @@ import { startAgentHotReload } from './services/agentRegistry';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
+import subscriptionRoutes from './routes/subscriptions';
+import billingRoutes from './routes/billing';
 
 // Load environment variables
 dotenv.config();
@@ -35,6 +37,8 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api', apiRoutes);
 
 // 404 handler
