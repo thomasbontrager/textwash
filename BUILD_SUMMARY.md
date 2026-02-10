@@ -178,7 +178,7 @@
 ## 📁 Project Structure
 
 ```
-cleantext/
+textwash/
 ├── index.html                  # Multi-page SPA
 ├── style.css                   # Dark SaaS theme
 ├── app.js                      # Frontend logic (auth, routing, subscriptions)

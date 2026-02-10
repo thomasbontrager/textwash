@@ -11,7 +11,7 @@
 INSERT INTO "User" (id, email, "passwordHash", role, "createdAt", "updatedAt")
 VALUES (
   gen_random_uuid()::text,
-  'admin@cleantext.app',
+  'admin@textwash.app',
   '$2a$12$...bcrypt_hash...',
   'ADMIN',
   NOW(),

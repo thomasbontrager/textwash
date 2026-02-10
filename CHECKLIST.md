@@ -45,8 +45,8 @@
   - [ ] Secret key (sk_test_...)
   
 - [ ] Products created in Stripe:
-  - [ ] CleanText Starter ($29/year, 14-day trial)
-  - [ ] CleanText Pro ($99/year, 14-day trial)
+  - [ ] TextWash Starter ($29/year, 14-day trial)
+  - [ ] TextWash Pro ($99/year, 14-day trial)
   
 - [ ] Backend `.env` updated:
   - [ ] STRIPE_SECRET_KEY set

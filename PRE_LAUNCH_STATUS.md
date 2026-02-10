@@ -68,7 +68,7 @@ This will:
 
 **Current DATABASE_URL:**
 ```
-postgresql://user:password@localhost:5432/cleantext?schema=public
+postgresql://user:password@localhost:5432/textwash?schema=public
 ```
 
 ⚠️ **You need to:**
@@ -100,7 +100,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = 'admin@cleantext.com';
+  const email = 'admin@textwash.app';
   const password = 'YourSecurePassword123!';
   
   const passwordHash = await bcrypt.hash(password, 12);
