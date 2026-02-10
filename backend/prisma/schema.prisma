@@ -156,3 +156,88 @@ model AgentExecution {
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
 }
+
+model StripeProduct {
+  id              String   @id @default(cuid())
+  stripeProductId String   @unique
+  name            String
+  description     String?
+  active          Boolean  @default(true)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  prices          StripePrice[]
+  
+  @@index([active])
+}
+
+model StripePrice {
+  id              String        @id @default(cuid())
+  stripePriceId   String        @unique
+  productId       String
+  product         StripeProduct @relation(fields: [productId], references: [id])
+  amount          Int
+  currency        String        @default("usd")
+  interval        String?
+  intervalCount   Int?
+  trialDays       Int?
+  active          Boolean       @default(true)
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([productId, active])
+}
+
+model StripeWebhookEvent {
+  id              String   @id @default(cuid())
+  stripeEventId   String   @unique
+  type            String
+  data            Json
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  error           String?
+  retryCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  
+  @@index([processed, createdAt])
+  @@index([type, createdAt])
+}
+
+model BillingAuditLog {
+  id              String   @id @default(cuid())
+  action          String
+  resourceType    String
+  resourceId      String?
+  adminUserId     String?
+  changes         Json?
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  
+  @@index([adminUserId, createdAt])
+  @@index([resourceType, createdAt])
+  @@index([action, createdAt])
+}
+
+model Invoice {
+  id                String   @id @default(cuid())
+  stripeInvoiceId   String   @unique
+  stripeCustomerId  String
+  subscriptionId    String?
+  amount            Int
+  currency          String   @default("usd")
+  status            String
+  hostedUrl         String?
+  pdfUrl            String?
+  paid              Boolean  @default(false)
+  paidAt            DateTime?
+  dueDate           DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([stripeCustomerId, createdAt])
+  @@index([status, createdAt])
+}

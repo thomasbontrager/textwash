@@ -398,3 +398,507 @@ window.cancelSubscription = cancelSubscription;
 window.openStripePortal = openStripePortal;
 window.switchAdminTab = switchAdminTab;
 window.handleStripeConfig = handleStripeConfig;
+
+// ============================================================================
+// ADMIN BILLING FUNCTIONS
+// ============================================================================
+
+// Load billing dashboard
+async function loadBillingDashboard() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/metrics`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const metrics = await response.json();
+      
+      // Update metrics
+      document.getElementById('mrr').textContent = `$${metrics.mrr || 0}`;
+      document.getElementById('arr').textContent = `$${metrics.arr || 0}`;
+      document.getElementById('activeSubs').textContent = metrics.activeSubscriptions || 0;
+      document.getElementById('trialSubs').textContent = metrics.trialingSubscriptions || 0;
+      
+      // Plan breakdown
+      const planBreakdown = document.getElementById('planBreakdown');
+      if (metrics.subscriptionsByPlan) {
+        planBreakdown.innerHTML = metrics.subscriptionsByPlan.map(item => `
+          <div class="plan-stat">
+            <span class="plan-name">${item.plan}</span>
+            <span class="plan-count">${item._count}</span>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (error) {
+    console.error('Error loading billing dashboard:', error);
+  }
+}
+
+// Load Stripe configuration status
+async function loadStripeConfig() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/config`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const config = await response.json();
+      const statusEl = document.getElementById('configStatus');
+      
+      if (config.configured) {
+        statusEl.innerHTML = '<p class="success">✅ Stripe is configured and ready</p>';
+      } else {
+        statusEl.innerHTML = '<p class="warning">⚠️ Stripe is not configured. Add your API keys below.</p>';
+      }
+      
+      // Set webhook URL
+      const webhookUrl = document.getElementById('webhookUrl');
+      if (webhookUrl) {
+        webhookUrl.textContent = `${API_URL.replace('/api', '')}/api/webhooks/stripe`;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading Stripe config:', error);
+  }
+}
+
+// Load products and prices
+async function loadProducts() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/products`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const productsList = document.getElementById('productsList');
+      
+      if (data.products && data.products.length > 0) {
+        productsList.innerHTML = data.products.map(product => `
+          <div class="product-card">
+            <h3>${product.name}</h3>
+            <p>${product.description || 'No description'}</p>
+            <span class="badge ${product.active ? 'badge-success' : 'badge-warning'}">
+              ${product.active ? 'Active' : 'Inactive'}
+            </span>
+            <button class="btn btn-small" onclick="loadPricesForProduct('${product.id}')">
+              View Prices
+            </button>
+            <button class="btn btn-small btn-primary" onclick="showCreatePriceModal('${product.id}')">
+              + Add Price
+            </button>
+          </div>
+        `).join('');
+      } else {
+        productsList.innerHTML = '<p class="empty-state">No products yet. Create one to get started.</p>';
+      }
+    }
+  } catch (error) {
+    console.error('Error loading products:', error);
+  }
+}
+
+// Load subscriptions
+async function loadSubscriptions() {
+  try {
+    const token = localStorage.getItem('token');
+    const status = document.getElementById('subStatusFilter')?.value || '';
+    
+    const url = new URL(`${API_URL}/admin/billing/subscriptions`);
+    if (status) url.searchParams.append('status', status);
+    
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const subsList = document.getElementById('subscriptionsList');
+      
+      if (data.subscriptions && data.subscriptions.length > 0) {
+        subsList.innerHTML = data.subscriptions.map(sub => `
+          <div class="subscription-card">
+            <div class="sub-header">
+              <span class="sub-email">${sub.user?.email || 'Unknown'}</span>
+              <span class="badge badge-${getStatusClass(sub.status)}">${sub.status}</span>
+            </div>
+            <div class="sub-details">
+              <p><strong>Plan:</strong> ${sub.plan}</p>
+              <p><strong>Stripe ID:</strong> ${sub.stripeSubscriptionId || 'N/A'}</p>
+              <p><strong>Period:</strong> ${formatDate(sub.currentPeriodStart)} - ${formatDate(sub.currentPeriodEnd)}</p>
+            </div>
+            <div class="sub-actions">
+              ${sub.stripeSubscriptionId ? `
+                <button class="btn btn-small btn-danger" onclick="confirmCancelSubscription('${sub.stripeSubscriptionId}')">
+                  Cancel
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        subsList.innerHTML = '<p class="empty-state">No subscriptions found.</p>';
+      }
+    }
+  } catch (error) {
+    console.error('Error loading subscriptions:', error);
+  }
+}
+
+// Load customers
+async function loadCustomers() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/customers`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const customersList = document.getElementById('customersList');
+      
+      if (data.customers && data.customers.length > 0) {
+        customersList.innerHTML = data.customers.map(customer => `
+          <div class="customer-card">
+            <h3>${customer.name || customer.email}</h3>
+            <p><strong>Email:</strong> ${customer.email}</p>
+            <p><strong>Customer ID:</strong> ${customer.id}</p>
+            <p><strong>Created:</strong> ${formatDate(new Date(customer.created * 1000))}</p>
+          </div>
+        `).join('');
+      } else {
+        customersList.innerHTML = '<p class="empty-state">No customers found.</p>';
+      }
+    }
+  } catch (error) {
+    console.error('Error loading customers:', error);
+  }
+}
+
+// Load invoices
+async function loadInvoices() {
+  try {
+    const token = localStorage.getItem('token');
+    const status = document.getElementById('invoiceStatusFilter')?.value || '';
+    
+    const url = new URL(`${API_URL}/admin/billing/invoices`);
+    if (status) url.searchParams.append('status', status);
+    
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const invoicesList = document.getElementById('invoicesList');
+      
+      if (data.invoices && data.invoices.length > 0) {
+        invoicesList.innerHTML = data.invoices.map(invoice => `
+          <div class="invoice-card">
+            <div class="invoice-header">
+              <span class="invoice-id">${invoice.stripeInvoiceId}</span>
+              <span class="badge badge-${invoice.paid ? 'success' : 'warning'}">${invoice.status}</span>
+            </div>
+            <div class="invoice-details">
+              <p><strong>Amount:</strong> $${(invoice.amount / 100).toFixed(2)} ${invoice.currency.toUpperCase()}</p>
+              <p><strong>Customer:</strong> ${invoice.stripeCustomerId}</p>
+              <p><strong>Created:</strong> ${formatDate(invoice.createdAt)}</p>
+              ${invoice.hostedUrl ? `
+                <a href="${invoice.hostedUrl}" target="_blank" class="btn btn-small">View Invoice</a>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        invoicesList.innerHTML = '<p class="empty-state">No invoices found.</p>';
+      }
+    }
+  } catch (error) {
+    console.error('Error loading invoices:', error);
+  }
+}
+
+// Load webhook events
+async function loadWebhookEvents() {
+  try {
+    const token = localStorage.getItem('token');
+    const processed = document.getElementById('webhookProcessedFilter')?.value || '';
+    const type = document.getElementById('webhookTypeFilter')?.value || '';
+    
+    const url = new URL(`${API_URL}/admin/billing/webhook-events`);
+    if (processed) url.searchParams.append('processed', processed);
+    if (type) url.searchParams.append('type', type);
+    url.searchParams.append('limit', '50');
+    
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const eventsList = document.getElementById('webhookEventsList');
+      
+      if (data.events && data.events.length > 0) {
+        eventsList.innerHTML = data.events.map(event => `
+          <div class="webhook-event">
+            <div class="event-header">
+              <span class="event-type">${event.type}</span>
+              <span class="badge badge-${event.processed ? 'success' : 'warning'}">
+                ${event.processed ? 'Processed' : 'Pending'}
+              </span>
+            </div>
+            <div class="event-details">
+              <p><strong>Event ID:</strong> ${event.stripeEventId}</p>
+              <p><strong>Created:</strong> ${formatDate(event.createdAt)}</p>
+              ${event.error ? `<p class="error"><strong>Error:</strong> ${event.error}</p>` : ''}
+              ${event.retryCount > 0 ? `<p><strong>Retries:</strong> ${event.retryCount}</p>` : ''}
+            </div>
+            ${!event.processed ? `
+              <button class="btn btn-small" onclick="retryWebhookEvent('${event.stripeEventId}')">
+                Retry
+              </button>
+            ` : ''}
+          </div>
+        `).join('');
+      } else {
+        eventsList.innerHTML = '<p class="empty-state">No webhook events found.</p>';
+      }
+    }
+  } catch (error) {
+    console.error('Error loading webhook events:', error);
+  }
+}
+
+// Handle create product
+async function handleCreateProduct(event) {
+  event.preventDefault();
+  
+  const name = document.getElementById('productName').value;
+  const description = document.getElementById('productDescription').value;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ name, description })
+    });
+    
+    if (response.ok) {
+      closeModal('createProductModal');
+      loadProducts();
+      alert('Product created successfully!');
+    } else {
+      const error = await response.json();
+      alert(`Error: ${error.message || 'Failed to create product'}`);
+    }
+  } catch (error) {
+    alert('Error creating product');
+  }
+}
+
+// Handle create price
+async function handleCreatePrice(event) {
+  event.preventDefault();
+  
+  const productId = document.getElementById('priceProductId').value;
+  const amount = parseInt(document.getElementById('priceAmount').value);
+  const interval = document.getElementById('priceInterval').value;
+  const trialDays = parseInt(document.getElementById('priceTrialDays').value) || undefined;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/prices`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ 
+        productId, 
+        amount, 
+        interval: interval || undefined,
+        trialDays 
+      })
+    });
+    
+    if (response.ok) {
+      closeModal('createPriceModal');
+      loadProducts();
+      alert('Price created successfully!');
+    } else {
+      const error = await response.json();
+      alert(`Error: ${error.message || 'Failed to create price'}`);
+    }
+  } catch (error) {
+    alert('Error creating price');
+  }
+}
+
+// Confirm cancel subscription
+function confirmCancelSubscription(subscriptionId) {
+  showConfirmModal(
+    'Cancel Subscription',
+    'Are you sure you want to cancel this subscription? This action will cancel at the end of the billing period.',
+    () => cancelAdminSubscription(subscriptionId)
+  );
+}
+
+// Cancel subscription (admin)
+async function cancelAdminSubscription(subscriptionId) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/admin/billing/subscriptions/${subscriptionId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ immediate: false })
+    });
+    
+    if (response.ok) {
+      loadSubscriptions();
+      alert('Subscription will be canceled at the end of the billing period');
+    } else {
+      const error = await response.json();
+      alert(`Error: ${error.message || 'Failed to cancel subscription'}`);
+    }
+  } catch (error) {
+    alert('Error canceling subscription');
+  }
+}
+
+// Retry webhook event
+async function retryWebhookEvent(eventId) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/webhooks/stripe/retry/${eventId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      loadWebhookEvents();
+      alert('Webhook event reprocessed successfully');
+    } else {
+      const error = await response.json();
+      alert(`Error: ${error.message || 'Failed to retry webhook'}`);
+    }
+  } catch (error) {
+    alert('Error retrying webhook event');
+  }
+}
+
+// Modal helpers
+function showCreateProductModal() {
+  document.getElementById('createProductModal').classList.remove('hidden');
+}
+
+function showCreatePriceModal(productId) {
+  document.getElementById('priceProductId').value = productId;
+  document.getElementById('createPriceModal').classList.remove('hidden');
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
+
+function showConfirmModal(title, message, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  document.getElementById('confirmBtn').onclick = () => {
+    onConfirm();
+    closeModal('confirmModal');
+  };
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+// Utility functions
+function getStatusClass(status) {
+  const statusMap = {
+    'ACTIVE': 'success',
+    'TRIALING': 'info',
+    'PAST_DUE': 'warning',
+    'CANCELED': 'danger'
+  };
+  return statusMap[status] || 'default';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'N/A';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString();
+}
+
+function searchCustomers() {
+  // Implement debounced search
+  clearTimeout(window.customerSearchTimeout);
+  window.customerSearchTimeout = setTimeout(() => {
+    loadCustomers();
+  }, 300);
+}
+
+// Update switchAdminTab to load data
+window.switchAdminTab = function(tabName) {
+  // Switch tabs
+  document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelectorAll('.admin-tab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+  
+  // Activate selected tab
+  event.target.classList.add('active');
+  document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+  
+  // Load data based on tab
+  switch(tabName) {
+    case 'billing':
+      loadBillingDashboard();
+      break;
+    case 'stripe':
+      loadStripeConfig();
+      break;
+    case 'products':
+      loadProducts();
+      break;
+    case 'subscriptions':
+      loadSubscriptions();
+      break;
+    case 'customers':
+      loadCustomers();
+      break;
+    case 'invoices':
+      loadInvoices();
+      break;
+    case 'webhooks':
+      loadWebhookEvents();
+      break;
+  }
+};
+
+// Export functions to window
+window.loadBillingDashboard = loadBillingDashboard;
+window.loadStripeConfig = loadStripeConfig;
+window.loadProducts = loadProducts;
+window.loadSubscriptions = loadSubscriptions;
+window.loadCustomers = loadCustomers;
+window.loadInvoices = loadInvoices;
+window.loadWebhookEvents = loadWebhookEvents;
+window.handleCreateProduct = handleCreateProduct;
+window.handleCreatePrice = handleCreatePrice;
+window.showCreateProductModal = showCreateProductModal;
+window.showCreatePriceModal = showCreatePriceModal;
+window.closeModal = closeModal;
+window.confirmCancelSubscription = confirmCancelSubscription;
+window.retryWebhookEvent = retryWebhookEvent;
+window.searchCustomers = searchCustomers;

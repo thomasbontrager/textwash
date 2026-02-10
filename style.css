@@ -666,6 +666,327 @@ body.loaded .hero { animation: fadeUp 0.8s ease forwards; }
 body.loaded .features { animation: fadeUp 0.8s ease forwards; animation-delay: 0.15s; }
 body.loaded .pricing-container { animation: fadeUp 0.8s ease forwards; animation-delay: 0.15s; }
 
+/* ============================================================================
+   ADMIN BILLING STYLES
+   ============================================================================ */
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.metric-card h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--accent-blue);
+  margin-bottom: 0.5rem;
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Section Containers */
+.section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section h3 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+/* Action Bars */
+.actions-bar,
+.filters-bar,
+.search-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+
+.filters-bar select {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* Config Status */
+.config-status {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.config-status .success {
+  color: #4CAF50;
+}
+
+.config-status .warning {
+  color: #FFA726;
+}
+
+.setup-instructions {
+  padding-left: 1.5rem;
+  line-height: 1.8;
+}
+
+.setup-instructions code {
+  background: var(--bg-tertiary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+/* Cards */
+.product-card,
+.subscription-card,
+.customer-card,
+.invoice-card,
+.webhook-event {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.product-card:hover,
+.subscription-card:hover,
+.customer-card:hover,
+.invoice-card:hover,
+.webhook-event:hover {
+  border-color: var(--accent-blue);
+}
+
+.product-card h3,
+.customer-card h3 {
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.product-card p,
+.customer-card p,
+.invoice-card p,
+.webhook-event p {
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+/* Subscription Card */
+.sub-header,
+.invoice-header,
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sub-email {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sub-details,
+.invoice-details,
+.event-details {
+  margin-bottom: 1rem;
+}
+
+.sub-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-success {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
+
+.badge-warning {
+  background: rgba(255, 167, 38, 0.1);
+  color: #FFA726;
+}
+
+.badge-danger {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.badge-info {
+  background: rgba(76, 201, 240, 0.1);
+  color: #4CC9F0;
+}
+
+/* Button Variants */
+.btn-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.1);
+}
+
+/* Plan Breakdown */
+.plan-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.plan-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.plan-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.plan-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Invoice Specific */
+.invoice-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Webhook Event Specific */
+.event-type {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--accent-blue);
+}
+
+.event-details .error {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .cta-buttons { flex-direction: column; }
@@ -674,4 +995,23 @@ body.loaded .pricing-container { animation: fadeUp 0.8s ease forwards; animation
   #aiButtonsGroup { grid-template-columns: 1fr; }
   .hero { padding: 2rem 1rem; }
   .logo { width: 200px; }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .actions-bar,
+  .filters-bar {
+    flex-direction: column;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+  }
 }
