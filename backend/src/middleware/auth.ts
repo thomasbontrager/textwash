@@ -183,7 +183,7 @@ export function requirePermission(requiredPermissions: Permission[]) {
         return res.status(403).json({
           error: 'Insufficient permissions',
           required: requiredPermissions,
-          userPermissions: userPermissions
+          userPermissions
         });
       }
       
