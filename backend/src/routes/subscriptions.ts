@@ -7,6 +7,10 @@ import { PrismaClient, SubscriptionPlan } from '@prisma/client';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Constants
+const STRIPE_API_VERSION = '2023-10-16' as const;
+const DEFAULT_BASE_DOMAIN = 'textwash.app';
+
 // GET /subscriptions/plan - Get user's subscription details
 router.get('/plan', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -39,7 +43,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16'
+      apiVersion: STRIPE_API_VERSION
     });
 
     // Get user
@@ -81,7 +85,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
     }
 
     // Determine return URLs based on environment
-    const baseDomain = process.env.BASE_DOMAIN || 'textwash.app';
+    const baseDomain = process.env.BASE_DOMAIN || DEFAULT_BASE_DOMAIN;
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const baseUrl = process.env.NODE_ENV === 'development'
       ? 'http://localhost:3001'
@@ -140,7 +144,7 @@ router.post('/cancel-subscription', authenticateToken, async (req: AuthRequest, 
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16'
+      apiVersion: STRIPE_API_VERSION
     });
 
     // Cancel at period end (so user keeps access until end of billing cycle)
