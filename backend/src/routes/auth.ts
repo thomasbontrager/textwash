@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AuthRequest } from '../types';
@@ -30,12 +31,36 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
     
+    // Create Stripe customer if Stripe is configured
+    let stripeCustomerId: string | undefined;
+    if (process.env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+          apiVersion: '2023-10-16'
+        });
+        
+        const customer = await stripe.customers.create({
+          email,
+          metadata: {
+            source: 'signup'
+          }
+        });
+        
+        stripeCustomerId = customer.id;
+        console.log(`Stripe customer created: ${customer.id} for ${email}`);
+      } catch (stripeError) {
+        console.error('Failed to create Stripe customer on signup:', stripeError);
+        // Continue with signup even if Stripe customer creation fails
+      }
+    }
+    
     // Create user
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
-        role: 'USER'
+        role: 'USER',
+        stripeId: stripeCustomerId
       }
     });
     
@@ -44,7 +69,8 @@ router.post('/signup', async (req, res) => {
       data: {
         userId: user.id,
         plan: 'FREE',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        stripeCustomerId: stripeCustomerId
       }
     });
     

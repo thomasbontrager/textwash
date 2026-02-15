@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard — TextWash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.ico" />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4cc9f0',
+            'primary-dark': '#4361ee',
+            'bg-dark': '#0b0d12',
+            'panel-dark': '#121622',
+            'panel-hover': '#1a1f2e',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="admin-dashboard.css" />
+  
+  <!-- Subdomain configuration -->
+  <script src="subdomain-config.js"></script>
+</head>
+<body class="bg-bg-dark text-gray-100">
+  
+  <!-- Loading State -->
+  <div id="loadingState" class="fixed inset-0 bg-bg-dark z-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <p class="mt-4 text-gray-400">Loading Admin Dashboard...</p>
+    </div>
+  </div>
+  
+  <!-- Main Container -->
+  <div id="mainContainer" class="hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-panel-dark border-r border-gray-800 transform transition-transform duration-300 ease-in-out z-40 lg:translate-x-0">
+      <div class="flex flex-col h-full">
+        <!-- Logo -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-800">
+          <div class="flex items-center space-x-3">
+            <img src="assets/logo.png" alt="TextWash" class="h-8 w-8" />
+            <span class="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">Admin</span>
+          </div>
+          <button id="closeSidebar" class="lg:hidden text-gray-400 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto p-4">
+          <div class="space-y-1">
+            <a href="#" data-page="dashboard" class="nav-item active">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+              </svg>
+              <span>Dashboard</span>
+            </a>
+            <a href="#" data-page="users" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+              <span>Users</span>
+            </a>
+            <a href="#" data-page="plans" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <span>Plans</span>
+            </a>
+            <a href="#" data-page="feature-flags" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
+              </svg>
+              <span>Feature Flags</span>
+            </a>
+            <a href="#" data-page="billing" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+              </svg>
+              <span>Billing</span>
+            </a>
+            <a href="#" data-page="ai-usage" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+              </svg>
+              <span>AI Usage</span>
+            </a>
+            <a href="#" data-page="logs" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <span>Logs</span>
+            </a>
+            <a href="#" data-page="oauth" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+              </svg>
+              <span>OAuth</span>
+            </a>
+            <a href="#" data-page="emails" class="nav-item">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+              <span>Emails</span>
+            </a>
+          </div>
+        </nav>
+        
+        <!-- User Info & Logout -->
+        <div class="p-4 border-t border-gray-800">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary-dark flex items-center justify-center text-sm font-bold">
+                A
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-white truncate" id="adminEmail">admin@example.com</p>
+                <p class="text-xs text-gray-400">Administrator</p>
+              </div>
+            </div>
+            <button id="logoutBtn" class="text-gray-400 hover:text-white" title="Logout">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <div class="lg:pl-64">
+      <!-- Header -->
+      <header class="sticky top-0 z-30 bg-panel-dark/95 backdrop-blur border-b border-gray-800">
+        <div class="px-4 sm:px-6 lg:px-8 py-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+              <button id="openSidebar" class="lg:hidden text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+              </button>
+              <h1 id="pageTitle" class="text-2xl font-bold text-white">Dashboard</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+              <button class="text-gray-400 hover:text-white relative">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Page Content -->
+      <main class="p-4 sm:p-6 lg:p-8">
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page-content">
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div class="stats-card">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-400">Total Users</p>
+                  <p class="text-3xl font-bold text-white mt-2">1,234</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-sm text-green-400 mt-2">↑ 12% from last month</p>
+            </div>
+            
+            <div class="stats-card">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-400">Active Subscriptions</p>
+                  <p class="text-3xl font-bold text-white mt-2">856</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-sm text-green-400 mt-2">↑ 8% from last month</p>
+            </div>
+            
+            <div class="stats-card">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-400">Monthly Revenue</p>
+                  <p class="text-3xl font-bold text-white mt-2">$12.4k</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-sm text-green-400 mt-2">↑ 15% from last month</p>
+            </div>
+            
+            <div class="stats-card">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-400">AI Requests</p>
+                  <p class="text-3xl font-bold text-white mt-2">45.2k</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-sm text-green-400 mt-2">↑ 23% from last month</p>
+            </div>
+          </div>
+          
+          <!-- Recent Activity -->
+          <div class="content-card">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-bold text-white">Recent Activity</h2>
+              <button class="text-sm text-primary hover:text-primary-dark">View All</button>
+            </div>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-gray-400">No recent activity</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Users Page -->
+        <div id="usersPage" class="page-content hidden">
+          <div class="content-card">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h2 class="text-xl font-bold text-white">Users Management</h2>
+              <button class="btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add User
+              </button>
+            </div>
+            
+            <!-- Search and Filters -->
+            <div class="mb-6">
+              <div class="search-input">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="text" placeholder="Search users..." />
+              </div>
+            </div>
+            
+            <!-- Table -->
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="6">
+                      <div class="empty-state py-8">
+                        <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <p class="text-gray-400">No users found</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="pagination">
+              <button class="pagination-btn" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Previous
+              </button>
+              <div class="flex items-center space-x-2">
+                <button class="pagination-number active">1</button>
+                <button class="pagination-number">2</button>
+                <button class="pagination-number">3</button>
+              </div>
+              <button class="pagination-btn">
+                Next
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Plans Page -->
+        <div id="plansPage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">Subscription Plans</h2>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-gray-400">Plans management coming soon</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Feature Flags Page -->
+        <div id="featureFlagsPage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">Feature Flags</h2>
+            
+            <!-- Feature Flag Item -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-4 bg-panel-dark rounded-lg border border-gray-800">
+                <div class="flex-1">
+                  <h3 class="text-white font-medium">AI Features</h3>
+                  <p class="text-sm text-gray-400 mt-1">Enable AI-powered text processing features</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="flex items-center justify-between p-4 bg-panel-dark rounded-lg border border-gray-800">
+                <div class="flex-1">
+                  <h3 class="text-white font-medium">Beta Features</h3>
+                  <p class="text-sm text-gray-400 mt-1">Enable experimental features for testing</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="flex items-center justify-between p-4 bg-panel-dark rounded-lg border border-gray-800">
+                <div class="flex-1">
+                  <h3 class="text-white font-medium">Analytics</h3>
+                  <p class="text-sm text-gray-400 mt-1">Track usage analytics and metrics</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Billing Page -->
+        <div id="billingPage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">Billing Overview</h2>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+              </svg>
+              <p class="text-gray-400">No billing data available</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- AI Usage Page -->
+        <div id="aiUsagePage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">AI Usage Statistics</h2>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+              <p class="text-gray-400">No usage data available</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Logs Page -->
+        <div id="logsPage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">System Logs</h2>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-gray-400">No logs available</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- OAuth Page -->
+        <div id="oauthPage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">OAuth Configuration</h2>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+              </svg>
+              <p class="text-gray-400">OAuth settings coming soon</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Emails Page -->
+        <div id="emailsPage" class="page-content hidden">
+          <div class="content-card">
+            <h2 class="text-xl font-bold text-white mb-6">Email Management</h2>
+            <div class="empty-state">
+              <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+              <p class="text-gray-400">Email templates coming soon</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Modal Component -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="text-xl font-bold text-white">Modal Title</h3>
+        <button id="modalClose" class="text-gray-400 hover:text-white">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="modalBody" class="modal-body">
+        <!-- Modal content goes here -->
+      </div>
+      <div id="modalFooter" class="modal-footer hidden">
+        <button class="btn-secondary" id="modalCancelBtn">Cancel</button>
+        <button class="btn-primary" id="modalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- JavaScript -->
+  <script src="admin-dashboard.js"></script>
+</body>
+</html>

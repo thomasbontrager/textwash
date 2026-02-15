@@ -7,8 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
+// Enums
+enum RoleType {
+  SUPER_ADMIN
   ADMIN
 }
 
@@ -21,6 +22,9 @@ enum SubscriptionPlan {
   STARTER
   PRO
   ENTERPRISE
+  MANAGER
+  USER
+  GUEST
 }
 
 enum SubscriptionStatus {
@@ -28,60 +32,313 @@ enum SubscriptionStatus {
   CANCELED
   PAST_DUE
   TRIALING
+  PAUSED
+  EXPIRED
 }
 
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// User Model with soft delete
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  passwordHash  String
-  role          Role          @default(USER)
-  stripeId      String?       @unique
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
-  subscription  Subscription?
-  adminProfile  AdminProfile?
-  apiKeys       ApiKey[]
-  organization  Organization? @relation(fields: [organizationId], references: [id])
-  organizationId String?
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  stripeId     String?   @unique
+  deletedAt    DateTime? // Soft delete support
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  roles           UserRole[]
+  subscriptions   Subscription[]
+  adminProfile    AdminProfile?
+  apiKeys         ApiKey[]
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  organizationId  String?
   agentExecutions AgentExecution[]
+  aiUsageLogs     AIUsageLog[]
+  loginLogs       LoginLog[]
+  apiLogs         APILog[]
+  sessions        Session[]
+
+  @@index([email])
+  @@index([deletedAt])
+  @@index([organizationId])
 }
 
+// Role Model
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  type        RoleType @default(USER)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([type])
+}
+
+// Permission Model
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  resource    String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  roles RolePermission[]
+
+  @@unique([resource, action])
+  @@index([resource])
+}
+
+// Many-to-many relation between Role and Permission
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+// Many-to-many relation between User and Role
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+// Plan Model with JSON fields
+model Plan {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  displayName   String
+  description   String?
+  price         Float
+  currency      String   @default("usd")
+  interval      String // "month", "year"
+  featureLimits Json // JSON field for feature limits
+  planAccess    Json // JSON field for plan access features
+  isActive      Boolean  @default(true)
+  stripePriceId String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@index([isActive])
+  @@index([name])
+}
+
+// Subscription Model with userOverrides JSON
+// Note: Users can have multiple subscriptions (e.g., historical records).
+// Use the 'status' field to identify active subscriptions.
+// Query for active subscription: where: { userId: id, status: 'ACTIVE' }
 model Subscription {
-  id                    String              @id @default(cuid())
-  userId                String              @unique
-  user                  User                @relation(fields: [userId], references: [id])
-  plan                  SubscriptionPlan    @default(FREE)
-  status                SubscriptionStatus  @default(ACTIVE)
-  stripeSubscriptionId  String?             @unique
-  stripeCustomerId      String?
-  trialEndsAt           DateTime?
-  currentPeriodStart    DateTime?
-  currentPeriodEnd      DateTime?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  id                   String             @id @default(cuid())
+  userId               String
+  planId               String
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?            @unique
+  stripeCustomerId     String?
+  userOverrides        Json? // JSON field for user-specific overrides
+  trialEndsAt          DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  canceledAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
 }
 
+// FeatureFlag Model
+model FeatureFlag {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  isEnabled         Boolean  @default(false)
+  rolloutPercentage Int      @default(0) // 0-100 for gradual rollout
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isEnabled])
+  @@index([name])
+}
+
+// AIUsageLog Model
+model AIUsageLog {
+  id         String   @id @default(cuid())
+  userId     String
+  model      String
+  tokensUsed Int
+  cost       Float?
+  operation  String
+  metadata   Json?
+  timestamp  DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([model])
+  @@index([timestamp])
+}
+
+// WebhookEvent Model
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  source      String
+  eventType   String
+  payload     Json
+  status      String    @default("pending") // pending, processed, failed
+  attempts    Int       @default(0)
+  lastError   String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([source, eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// EmailTemplate Model
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  subject   String
+  htmlBody  String
+  textBody  String?
+  variables Json? // JSON array of required variables
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+}
+
+// LoginLog Model
+model LoginLog {
+  id            String   @id @default(cuid())
+  userId        String
+  ipAddress     String
+  userAgent     String?
+  successful    Boolean
+  failureReason String?
+  timestamp     DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([ipAddress])
+  @@index([timestamp])
+}
+
+// APILog Model
+model APILog {
+  id           String   @id @default(cuid())
+  userId       String?
+  method       String
+  endpoint     String
+  statusCode   Int
+  responseTime Int // in milliseconds
+  ipAddress    String
+  userAgent    String?
+  requestBody  Json?
+  responseBody Json?
+  timestamp    DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, timestamp])
+  @@index([endpoint])
+  @@index([statusCode])
+  @@index([timestamp])
+}
+
+// Session Model
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  ipAddress String
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// Legacy Models (preserved for backward compatibility)
 model AdminProfile {
-  id                      String   @id @default(cuid())
-  userId                  String   @unique
-  user                    User     @relation(fields: [userId], references: [id])
-  stripePublishableKey    String?
-  stripeSecretKey         String?
-  stripeWebhookSecret     String?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripePublishableKey String?
+  stripeSecretKey      String?
+  stripeWebhookSecret  String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model Organization {
-  id          String    @id @default(cuid())
-  name        String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  users       User[]
-  policies    Policy[]
-  apiKeys     ApiKey[]
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  policies Policy[]
+  apiKeys  ApiKey[]
 }
 
 model AgentRule {
@@ -93,61 +350,61 @@ model AgentRule {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@unique([agentName, version])
   @@index([agentName, enabled])
 }
 
 model Policy {
-  id              String        @id @default(cuid())
-  organizationId  String
-  organization    Organization  @relation(fields: [organizationId], references: [id])
-  name            String
-  type            String
-  rules           Json
-  enabled         Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  type           String
+  rules          Json
+  enabled        Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
   @@index([organizationId, enabled])
 }
 
 model ApiKey {
-  id              String        @id @default(cuid())
-  key             String        @unique
-  name            String
-  userId          String
-  user            User          @relation(fields: [userId], references: [id])
-  organizationId  String
-  organization    Organization  @relation(fields: [organizationId], references: [id])
-  rateLimit       Int           @default(1000)
-  enabledAgents   String[]
-  enabled         Boolean       @default(true)
-  lastUsedAt      DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  usageRecords    UsageRecord[]
-  
+  id             String       @id @default(cuid())
+  key            String       @unique
+  name           String
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rateLimit      Int          @default(1000)
+  enabledAgents  String[]
+  enabled        Boolean      @default(true)
+  lastUsedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usageRecords UsageRecord[]
+
   @@index([key, enabled])
   @@index([organizationId])
 }
 
 model UsageRecord {
-  id          String   @id @default(cuid())
-  apiKeyId    String
-  apiKey      ApiKey   @relation(fields: [apiKeyId], references: [id])
-  endpoint    String
-  agentsUsed  String[]
-  timestamp   DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  apiKeyId   String
+  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  endpoint   String
+  agentsUsed String[]
+  timestamp  DateTime @default(now())
+
   @@index([apiKeyId, timestamp])
 }
 
 model AgentExecution {
   id              String   @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   agentName       String
   input           String
   output          String
@@ -156,7 +413,7 @@ model AgentExecution {
   confidenceScore Float?
   duration        Int
   timestamp       DateTime @default(now())
-  
+
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
 }
@@ -178,4 +435,14 @@ model PricingPlan {
   updatedAt             DateTime @updatedAt
   
   @@index([active, sortOrder])
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  eventType       String
+  data            Json
+  processed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  
+  @@index([eventType, createdAt])
+  @@index([processed, createdAt])
 }
