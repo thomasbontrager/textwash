@@ -72,7 +72,149 @@ async function main() {
   // Seed role-permission mappings first
   await seedPermissions();
   
-  console.log('\nSeeding initial agent rules...');
+  console.log('\n💼 Seeding subscription plans...');
+  
+  // FREE Plan
+  await prisma.plan.upsert({
+    where: { name: 'FREE' },
+    update: {
+      displayName: 'Free Plan',
+      description: 'Basic text cleaning features',
+      price: 0,
+      currency: 'usd',
+      interval: 'month',
+      featureLimits: {
+        apiCalls: 100,
+        aiTokensPerMonth: 0, // No AI usage on free plan
+        storage: 1000
+      },
+      planAccess: {
+        basicAgents: true,
+        advancedAgents: false,
+        aiRewrite: false,
+        analytics: false
+      },
+      isActive: true
+    },
+    create: {
+      name: 'FREE',
+      displayName: 'Free Plan',
+      description: 'Basic text cleaning features',
+      price: 0,
+      currency: 'usd',
+      interval: 'month',
+      featureLimits: {
+        apiCalls: 100,
+        aiTokensPerMonth: 0,
+        storage: 1000
+      },
+      planAccess: {
+        basicAgents: true,
+        advancedAgents: false,
+        aiRewrite: false,
+        analytics: false
+      },
+      isActive: true
+    }
+  });
+  
+  // STARTER Plan
+  await prisma.plan.upsert({
+    where: { name: 'STARTER' },
+    update: {
+      displayName: 'Starter Plan',
+      description: 'All features with moderate usage limits',
+      price: 29,
+      currency: 'usd',
+      interval: 'month',
+      featureLimits: {
+        apiCalls: 10000,
+        aiTokensPerMonth: 50000, // ~50K tokens per month
+        storage: 10000
+      },
+      planAccess: {
+        basicAgents: true,
+        advancedAgents: true,
+        aiRewrite: true,
+        analytics: true
+      },
+      isActive: true,
+      stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || null
+    },
+    create: {
+      name: 'STARTER',
+      displayName: 'Starter Plan',
+      description: 'All features with moderate usage limits',
+      price: 29,
+      currency: 'usd',
+      interval: 'month',
+      featureLimits: {
+        apiCalls: 10000,
+        aiTokensPerMonth: 50000,
+        storage: 10000
+      },
+      planAccess: {
+        basicAgents: true,
+        advancedAgents: true,
+        aiRewrite: true,
+        analytics: true
+      },
+      isActive: true,
+      stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || null
+    }
+  });
+  
+  // PRO Plan
+  await prisma.plan.upsert({
+    where: { name: 'PRO' },
+    update: {
+      displayName: 'Pro Plan',
+      description: 'Unlimited features with high usage limits',
+      price: 99,
+      currency: 'usd',
+      interval: 'month',
+      featureLimits: {
+        apiCalls: 100000,
+        aiTokensPerMonth: 500000, // ~500K tokens per month
+        storage: 100000
+      },
+      planAccess: {
+        basicAgents: true,
+        advancedAgents: true,
+        aiRewrite: true,
+        analytics: true,
+        prioritySupport: true
+      },
+      isActive: true,
+      stripePriceId: process.env.STRIPE_PRO_PRICE_ID || null
+    },
+    create: {
+      name: 'PRO',
+      displayName: 'Pro Plan',
+      description: 'Unlimited features with high usage limits',
+      price: 99,
+      currency: 'usd',
+      interval: 'month',
+      featureLimits: {
+        apiCalls: 100000,
+        aiTokensPerMonth: 500000,
+        storage: 100000
+      },
+      planAccess: {
+        basicAgents: true,
+        advancedAgents: true,
+        aiRewrite: true,
+        analytics: true,
+        prioritySupport: true
+      },
+      isActive: true,
+      stripePriceId: process.env.STRIPE_PRO_PRICE_ID || null
+    }
+  });
+  
+  console.log('✅ Plans seeded (FREE, STARTER, PRO)');
+  
+  console.log('\n🤖 Seeding initial agent rules...');
 
   // Profanity Transformer rules
   await prisma.agentRule.upsert({
