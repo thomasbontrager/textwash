@@ -7,43 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
-  SUPPORT
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum Permission {
-  MANAGE_USERS
-  MANAGE_PLANS
-  MANAGE_FEATURE_FLAGS
-  MANAGE_OAUTH
-  VIEW_LOGS
-  IMPERSONATE_USERS
-  MANAGE_BILLING
-}
-
 enum SubscriptionPlan {
   FREE
   STARTER
   PRO
   ENTERPRISE
+}
+
 // Enums
 enum RoleType {
   SUPER_ADMIN
   ADMIN
-}
-
-enum Permission {
-  MANAGE_PLANS
-}
-
-enum SubscriptionPlan {
-  FREE
-  STARTER
-  PRO
-  ENTERPRISE
   MANAGER
   USER
   GUEST
@@ -56,13 +30,6 @@ enum SubscriptionStatus {
   TRIALING
   PAUSED
   EXPIRED
-}
-
-enum SubscriptionPlan {
-  FREE
-  STARTER
-  PRO
-  ENTERPRISE
 }
 
 // User Model with soft delete
@@ -459,22 +426,5 @@ model PricingPlan {
   updatedAt             DateTime @updatedAt
   
   @@index([active, sortOrder])
-model RolePermission {
-  id          String     @id @default(cuid())
-  role        Role
-  permission  Permission
-  createdAt   DateTime   @default(now())
-  
-  @@unique([role, permission])
-  @@index([role])
-model WebhookEvent {
-  id              String   @id @default(cuid())
-  eventId         String   @unique
-  eventType       String
-  data            Json
-  processed       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  
-  @@index([eventType, createdAt])
-  @@index([processed, createdAt])
 }
+

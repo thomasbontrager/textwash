@@ -2,7 +2,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { AuthRequest } from '../types';
 import { authenticateToken } from '../middleware/auth';
-import { PrismaClient, SubscriptionPlan } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -131,7 +131,7 @@ router.post('/cancel-subscription', authenticateToken, async (req: AuthRequest, 
       return res.status(404).json({ error: 'Subscription not found' });
     }
 
-    if (subscription.plan === SubscriptionPlan.FREE) {
+    if (subscription.plan === 'FREE') {
       return res.status(400).json({ error: 'No active subscription to cancel' });
     }
 
