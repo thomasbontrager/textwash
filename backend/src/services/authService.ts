@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import {
   generateAccessToken,
   generateResetToken,
@@ -13,8 +13,6 @@ import {
   PasswordResetInput,
   ChangePasswordInput
 } from '../lib/auth/validation';
-
-const prisma = new PrismaClient();
 
 export interface AuthResult {
   success: boolean;

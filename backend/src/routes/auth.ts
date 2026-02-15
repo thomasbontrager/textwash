@@ -1,5 +1,5 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { authLimiter, passwordResetLimiter } from '../middleware/rateLimit';
@@ -15,7 +15,6 @@ import {
 } from '../lib/auth/validation';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // POST /auth/signup - Create new user
 router.post('/signup', authLimiter, validateRequest(signupSchema), async (req, res) => {
