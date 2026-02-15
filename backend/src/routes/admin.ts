@@ -387,4 +387,122 @@ router.get('/usage', requirePermission([Permission.VIEW_LOGS]), async (req: Auth
   }
 });
 
+// ===== FEATURE FLAG ROUTES =====
+
+// GET /admin/feature-flags - List all feature flags
+router.get('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const flags = await prisma.featureFlag.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    res.json(flags);
+  } catch (error) {
+    console.error('List feature flags error:', error);
+    res.status(500).json({ error: 'Failed to list feature flags' });
+  }
+});
+
+// GET /admin/feature-flags/:id - Get a specific feature flag
+router.get('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const flag = await prisma.featureFlag.findUnique({
+      where: { id }
+    });
+    
+    if (!flag) {
+      return res.status(404).json({ error: 'Feature flag not found' });
+    }
+    
+    res.json(flag);
+  } catch (error) {
+    console.error('Get feature flag error:', error);
+    res.status(500).json({ error: 'Failed to get feature flag' });
+  }
+});
+
+// POST /admin/feature-flags - Create a new feature flag
+router.post('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const { name, description, isEnabled, rolloutPercentage, planAccess, userOverrides } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    const flag = await prisma.featureFlag.create({
+      data: {
+        name,
+        description: description || null,
+        isEnabled: isEnabled ?? false,
+        rolloutPercentage: rolloutPercentage ?? 0,
+        planAccess: planAccess || null,
+        userOverrides: userOverrides || null
+      }
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Feature flag created successfully',
+      flag
+    });
+  } catch (error) {
+    console.error('Create feature flag error:', error);
+    res.status(500).json({ error: 'Failed to create feature flag' });
+  }
+});
+
+// PUT /admin/feature-flags/:id - Update a feature flag
+router.put('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, isEnabled, rolloutPercentage, planAccess, userOverrides } = req.body;
+    
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (isEnabled !== undefined) updateData.isEnabled = isEnabled;
+    if (rolloutPercentage !== undefined) updateData.rolloutPercentage = rolloutPercentage;
+    if (planAccess !== undefined) updateData.planAccess = planAccess;
+    if (userOverrides !== undefined) updateData.userOverrides = userOverrides;
+    
+    const flag = await prisma.featureFlag.update({
+      where: { id },
+      data: updateData
+    });
+    
+    res.json({
+      success: true,
+      message: 'Feature flag updated successfully',
+      flag
+    });
+  } catch (error) {
+    console.error('Update feature flag error:', error);
+    res.status(500).json({ error: 'Failed to update feature flag' });
+  }
+});
+
+// DELETE /admin/feature-flags/:id - Delete a feature flag
+router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    await prisma.featureFlag.delete({
+      where: { id }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Feature flag deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete feature flag error:', error);
+    res.status(500).json({ error: 'Failed to delete feature flag' });
+  }
+});
+
 export default router;

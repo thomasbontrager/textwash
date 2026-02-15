@@ -201,13 +201,15 @@ model Subscription {
   @@index([currentPeriodEnd])
 }
 
-// FeatureFlag Model
+// FeatureFlag Model with plan access and user overrides
 model FeatureFlag {
   id                String   @id @default(cuid())
   name              String   @unique
   description       String?
   isEnabled         Boolean  @default(false)
   rolloutPercentage Int      @default(0) // 0-100 for gradual rollout
+  planAccess        Json?    // JSON array of allowed plans: ["FREE", "STARTER", "PRO", "ENTERPRISE"]
+  userOverrides     Json?    // JSON object of user-specific overrides: { "userId": true/false }
   metadata          Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
