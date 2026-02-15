@@ -1,4 +1,4 @@
-import { PrismaClient, Role, Permission } from '@prisma/client';
+import { PrismaClient, RoleEnum, PermissionEnum } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -6,34 +6,34 @@ const prisma = new PrismaClient();
  * Role-Permission Mapping
  * Defines which permissions each role has access to
  */
-const rolePermissions: Record<Role, Permission[]> = {
+const rolePermissions: Record<RoleEnum, PermissionEnum[]> = {
   // USER - Basic user, no special permissions
   USER: [],
 
   // SUPPORT - Can view logs and impersonate users for troubleshooting
   SUPPORT: [
-    Permission.VIEW_LOGS,
-    Permission.IMPERSONATE_USERS
+    PermissionEnum.VIEW_LOGS,
+    PermissionEnum.IMPERSONATE_USERS
   ],
 
   // ADMIN - Can manage most aspects except critical OAuth and feature flags
   ADMIN: [
-    Permission.MANAGE_USERS,
-    Permission.MANAGE_PLANS,
-    Permission.VIEW_LOGS,
-    Permission.IMPERSONATE_USERS,
-    Permission.MANAGE_BILLING
+    PermissionEnum.MANAGE_USERS,
+    PermissionEnum.MANAGE_PLANS,
+    PermissionEnum.VIEW_LOGS,
+    PermissionEnum.IMPERSONATE_USERS,
+    PermissionEnum.MANAGE_BILLING
   ],
 
   // SUPER_ADMIN - Full access to all permissions
   SUPER_ADMIN: [
-    Permission.MANAGE_USERS,
-    Permission.MANAGE_PLANS,
-    Permission.MANAGE_FEATURE_FLAGS,
-    Permission.MANAGE_OAUTH,
-    Permission.VIEW_LOGS,
-    Permission.IMPERSONATE_USERS,
-    Permission.MANAGE_BILLING
+    PermissionEnum.MANAGE_USERS,
+    PermissionEnum.MANAGE_PLANS,
+    PermissionEnum.MANAGE_FEATURE_FLAGS,
+    PermissionEnum.MANAGE_OAUTH,
+    PermissionEnum.VIEW_LOGS,
+    PermissionEnum.IMPERSONATE_USERS,
+    PermissionEnum.MANAGE_BILLING
   ]
 };
 
@@ -47,13 +47,13 @@ async function seedPermissions() {
       await prisma.rolePermission.upsert({
         where: {
           role_permission: {
-            role: role as Role,
+            role: role as RoleEnum,
             permission: permission
           }
         },
         update: {},
         create: {
-          role: role as Role,
+          role: role as RoleEnum,
           permission: permission
         }
       });

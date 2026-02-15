@@ -7,14 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
+enum RoleEnum {
   USER
   SUPPORT
   ADMIN
   SUPER_ADMIN
 }
 
-enum Permission {
+enum PermissionEnum {
   MANAGE_USERS
   MANAGE_PLANS
   MANAGE_FEATURE_FLAGS

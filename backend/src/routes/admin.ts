@@ -4,7 +4,7 @@ import { authenticateToken, requireRole, requirePermission } from '../middleware
 import { reloadAgents, getAgentNames, getAllAgents } from '../services/agentRegistry';
 import { getRules, updateRules, clearRuleCache, getLatestRuleVersion } from '../services/ruleLoader';
 import { getPolicies, createPolicy, updatePolicy, deletePolicy } from '../services/policyService';
-import { PrismaClient, Role, Permission } from '@prisma/client';
+import { PrismaClient, RoleEnum as Role, PermissionEnum as Permission } from '@prisma/client';
 import crypto from 'crypto';
 
 const router = express.Router();
