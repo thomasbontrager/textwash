@@ -12,6 +12,10 @@ enum Role {
   ADMIN
 }
 
+enum Permission {
+  MANAGE_PLANS
+}
+
 enum SubscriptionPlan {
   FREE
   STARTER
@@ -155,4 +159,23 @@ model AgentExecution {
   
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
+}
+
+model PricingPlan {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  displayName           String
+  description           String?
+  monthlyPrice          Float
+  yearlyPrice           Float
+  stripeMonthlyPriceId  String?
+  stripeYearlyPriceId   String?
+  trialDays             Int      @default(0)
+  features              Json     @default("{}")
+  active                Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([active, sortOrder])
 }
