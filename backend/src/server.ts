@@ -10,6 +10,7 @@ import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
 import stripeRoutes from './routes/stripe';
 import billingRoutes from './routes/billing';
+import subscriptionsRoutes from './routes/subscriptions';
 
 // Load environment variables
 dotenv.config();
@@ -71,6 +72,7 @@ app.get('/health', (req, res) => {
 // Subdomain-based routing
 // API Routes - available on api.textwash.app (and root for backwards compatibility)
 app.use('/api/auth', authRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
 app.use('/api', apiRoutes);
