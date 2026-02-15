@@ -11,6 +11,7 @@ import apiRoutes from './routes/api';
 import stripeRoutes from './routes/stripe';
 import billingRoutes from './routes/billing';
 import subscriptionsRoutes from './routes/subscriptions';
+import featureExamplesRoutes from './routes/featureExamples';
 
 // Load environment variables
 dotenv.config();
@@ -75,6 +76,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
+app.use('/api/features', featureExamplesRoutes);  // Feature flag examples
 app.use('/api', apiRoutes);
 
 // 404 handler
