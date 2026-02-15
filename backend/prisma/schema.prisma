@@ -406,3 +406,15 @@ model AgentExecution {
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
 }
+
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  eventType       String
+  data            Json
+  processed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  
+  @@index([eventType, createdAt])
+  @@index([processed, createdAt])
+}
