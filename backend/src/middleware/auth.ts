@@ -147,7 +147,7 @@ export function requirePermission(permission: Permission) {
     }
     
     // Check if user has the required permission (admin has all permissions)
-    if (req.user.role !== 'ADMIN' || !ADMIN_PERMISSIONS.includes(permission)) {
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ 
         error: 'Insufficient permissions',
         required: permission
