@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
+import { authLimiter, passwordResetLimiter } from '../middleware/rateLimit';
 import { AuthRequest } from '../types';
 import { authService } from '../services/authService';
 import { setAuthCookie, clearAuthCookie } from '../lib/auth/cookies';
@@ -17,7 +18,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // POST /auth/signup - Create new user
-router.post('/signup', validateRequest(signupSchema), async (req, res) => {
+router.post('/signup', authLimiter, validateRequest(signupSchema), async (req, res) => {
   try {
     const sessionInfo = {
       userAgent: req.headers['user-agent'],
@@ -46,7 +47,7 @@ router.post('/signup', validateRequest(signupSchema), async (req, res) => {
 });
 
 // POST /auth/login - Authenticate user
-router.post('/login', validateRequest(loginSchema), async (req, res) => {
+router.post('/login', authLimiter, validateRequest(loginSchema), async (req, res) => {
   try {
     const sessionInfo = {
       userAgent: req.headers['user-agent'],
@@ -119,7 +120,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // POST /auth/password-reset/request - Request password reset
-router.post('/password-reset/request', validateRequest(passwordResetRequestSchema), async (req, res) => {
+router.post('/password-reset/request', passwordResetLimiter, validateRequest(passwordResetRequestSchema), async (req, res) => {
   try {
     const result = await authService.requestPasswordReset(req.body);
 

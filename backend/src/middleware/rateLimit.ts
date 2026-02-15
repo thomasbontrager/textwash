@@ -11,6 +11,25 @@ export const globalLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Strict rate limiter for auth endpoints (login, signup)
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { error: 'Too many authentication attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true // Only count failed attempts
+});
+
+// Stricter rate limiter for password reset requests
+export const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 attempts per hour
+  message: { error: 'Too many password reset requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // API key based rate limiting
 const apiKeyLimits = new Map<string, { count: number; resetTime: number }>();
 
