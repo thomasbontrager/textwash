@@ -35,6 +35,17 @@ enum SubscriptionPlan {
 enum RoleType {
   SUPER_ADMIN
   ADMIN
+}
+
+enum Permission {
+  MANAGE_PLANS
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
   MANAGER
   USER
   GUEST
@@ -428,4 +439,41 @@ model AgentExecution {
 
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
+}
+
+model PricingPlan {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  displayName           String
+  description           String?
+  monthlyPrice          Float
+  yearlyPrice           Float
+  stripeMonthlyPriceId  String?
+  stripeYearlyPriceId   String?
+  trialDays             Int      @default(0)
+  features              Json     @default("{}")
+  active                Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([active, sortOrder])
+model RolePermission {
+  id          String     @id @default(cuid())
+  role        Role
+  permission  Permission
+  createdAt   DateTime   @default(now())
+  
+  @@unique([role, permission])
+  @@index([role])
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  eventType       String
+  data            Json
+  processed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  
+  @@index([eventType, createdAt])
+  @@index([processed, createdAt])
 }
