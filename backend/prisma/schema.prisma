@@ -151,6 +151,9 @@ model Plan {
 }
 
 // Subscription Model with userOverrides JSON
+// Note: Users can have multiple subscriptions (e.g., historical records).
+// Use the 'status' field to identify active subscriptions.
+// Query for active subscription: where: { userId: id, status: 'ACTIVE' }
 model Subscription {
   id                   String             @id @default(cuid())
   userId               String

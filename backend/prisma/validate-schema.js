@@ -65,7 +65,7 @@ try {
   
   console.log('\n🎉 Schema validation successful!');
   console.log('\nKey Features:');
-  console.log('  • 22 Models defined');
+  console.log('  • 21 Models defined');
   console.log('  • 3 Enums (RoleType, SubscriptionStatus, SubscriptionPlan)');
   console.log('  • Soft delete on User (deletedAt field)');
   console.log('  • JSON fields: featureLimits, planAccess, userOverrides');
