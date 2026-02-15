@@ -1,21 +1,21 @@
 import express from 'express';
 import { AuthRequest } from '../types';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth';
 import { reloadAgents, getAgentNames, getAllAgents } from '../services/agentRegistry';
 import { getRules, updateRules, clearRuleCache, getLatestRuleVersion } from '../services/ruleLoader';
 import { getPolicies, createPolicy, updatePolicy, deletePolicy } from '../services/policyService';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role, Permission } from '@prisma/client';
 import crypto from 'crypto';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// All admin routes require authentication and admin role
+// All admin routes require authentication
 router.use(authenticateToken);
-router.use(requireAdmin);
 
 // GET /admin/agents - List all registered agents
-router.get('/agents', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/agents', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const agents = getAllAgents();
     const agentList = agents.map(agent => ({
@@ -31,7 +31,8 @@ router.get('/agents', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/agents/reload - Trigger hot reload of agents
-router.post('/agents/reload', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.post('/agents/reload', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
   try {
     await reloadAgents();
     const agentNames = getAgentNames();
@@ -49,7 +50,8 @@ router.post('/agents/reload', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/rules/:agentName - Get rules for a specific agent
-router.get('/rules/:agentName', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/rules/:agentName', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const rules = await getRules(agentName);
@@ -67,7 +69,8 @@ router.get('/rules/:agentName', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/rules/:agentName - Update rules for a specific agent
-router.put('/rules/:agentName', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.put('/rules/:agentName', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const { rules, description } = req.body;
@@ -92,7 +95,8 @@ router.put('/rules/:agentName', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/rules/:agentName/clear-cache - Clear cache for specific agent
-router.post('/rules/:agentName/clear-cache', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.post('/rules/:agentName/clear-cache', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     clearRuleCache(agentName);
@@ -108,7 +112,8 @@ router.post('/rules/:agentName/clear-cache', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/policies - List all policies
-router.get('/policies', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/policies', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -137,7 +142,8 @@ router.get('/policies', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/policies - Create a new policy
-router.post('/policies', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.post('/policies', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
   try {
     const { organizationId, name, type, rules } = req.body;
     
@@ -158,7 +164,8 @@ router.post('/policies', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/policies/:policyId - Update a policy
-router.put('/policies/:policyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.put('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     const { rules, enabled } = req.body;
@@ -176,7 +183,8 @@ router.put('/policies/:policyId', async (req: AuthRequest, res) => {
 });
 
 // DELETE /admin/policies/:policyId - Delete a policy
-router.delete('/policies/:policyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.delete('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     
@@ -193,7 +201,8 @@ router.delete('/policies/:policyId', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/api-keys - List API keys
-router.get('/api-keys', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/api-keys', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -234,7 +243,8 @@ router.get('/api-keys', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/api-keys - Create a new API key
-router.post('/api-keys', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.post('/api-keys', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
   try {
     const { userId, organizationId, name, rateLimit, enabledAgents } = req.body;
     
@@ -272,7 +282,8 @@ router.post('/api-keys', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/api-keys/:keyId - Update API key
-router.put('/api-keys/:keyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.put('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     const { enabled, rateLimit, enabledAgents } = req.body;
@@ -297,7 +308,8 @@ router.put('/api-keys/:keyId', async (req: AuthRequest, res) => {
 });
 
 // DELETE /admin/api-keys/:keyId - Delete API key
-router.delete('/api-keys/:keyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.delete('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     
@@ -316,7 +328,8 @@ router.delete('/api-keys/:keyId', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/usage - Get usage statistics
-router.get('/usage', async (req: AuthRequest, res) => {
+// Requires VIEW_LOGS permission
+router.get('/usage', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
   try {
     const { organizationId, startDate, endDate } = req.query;
     
