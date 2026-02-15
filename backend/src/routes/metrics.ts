@@ -1,6 +1,7 @@
 import express from 'express';
 import { AuthRequest } from '../types';
 import { authenticateToken, requirePermission } from '../middleware/auth';
+import { getTimeRangeDate } from '../utils/timeRange';
 import {
   getDashboardMetrics,
   getRequestMetrics,
@@ -143,23 +144,5 @@ router.get('/endpoints/slowest', async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Failed to get slowest endpoints' });
   }
 });
-
-// Helper function
-function getTimeRangeDate(timeRange: string): Date {
-  const now = new Date();
-  
-  switch (timeRange) {
-    case '1h':
-      return new Date(now.getTime() - 60 * 60 * 1000);
-    case '24h':
-      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    case '7d':
-      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    case '30d':
-      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    default:
-      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  }
-}
 
 export default router;

@@ -28,7 +28,8 @@ export function apiLogger(
   };
   
   // Override res.end to log after response is sent
-  res.end = function(chunk?: any, encodingOrCallback?: any, callback?: any): any {
+  const originalEndFn = res.end.bind(res);
+  res.end = function(...args: any[]): any {
     const responseTime = Date.now() - startTime;
     
     // Log asynchronously to avoid blocking response
@@ -54,29 +55,19 @@ export function apiLogger(
       }
     });
     
-    return originalEnd.call(this, chunk, encodingOrCallback, callback);
+    return originalEndFn(...args);
   };
   
   next();
 }
 
 /**
- * Sanitize request body to remove sensitive data
+ * Sanitize request body to remove sensitive data recursively
  */
 function sanitizeRequestBody(body: any): any {
   if (!body) return null;
   
-  const sanitized = { ...body };
-  
-  // Remove sensitive fields
-  const sensitiveFields = ['password', 'passwordHash', 'apiKey', 'token', 'secret'];
-  for (const field of sensitiveFields) {
-    if (sanitized[field]) {
-      sanitized[field] = '[REDACTED]';
-    }
-  }
-  
-  return sanitized;
+  return sanitizeObject(body);
 }
 
 /**
@@ -85,15 +76,7 @@ function sanitizeRequestBody(body: any): any {
 function sanitizeResponseBody(body: any): any {
   if (!body) return null;
   
-  const sanitized = { ...body };
-  
-  // Remove sensitive fields
-  const sensitiveFields = ['password', 'passwordHash', 'apiKey', 'token', 'secret', 'key'];
-  for (const field of sensitiveFields) {
-    if (sanitized[field]) {
-      sanitized[field] = '[REDACTED]';
-    }
-  }
+  const sanitized = sanitizeObject(body);
   
   // Limit response body size (truncate if too large)
   const bodyStr = JSON.stringify(sanitized);
@@ -102,4 +85,39 @@ function sanitizeResponseBody(body: any): any {
   }
   
   return sanitized;
+}
+
+/**
+ * Recursively sanitize an object by redacting sensitive fields
+ */
+function sanitizeObject(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObject(item));
+  }
+  
+  // Handle objects
+  if (typeof obj === 'object') {
+    const sanitized: any = {};
+    const sensitiveFields = ['password', 'passwordHash', 'apiKey', 'token', 'secret', 'key'];
+    
+    for (const [key, value] of Object.entries(obj)) {
+      if (sensitiveFields.includes(key.toLowerCase())) {
+        sanitized[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        sanitized[key] = sanitizeObject(value);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    
+    return sanitized;
+  }
+  
+  // Primitive values
+  return obj;
 }

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { getTimeRangeDate } from '../utils/timeRange';
 
 const prisma = new PrismaClient();
 
@@ -294,23 +295,6 @@ export async function getSlowestEndpoints(since: Date, limit: number = 10) {
 }
 
 // Helper functions
-
-function getTimeRangeDate(timeRange: string): Date {
-  const now = new Date();
-  
-  switch (timeRange) {
-    case '1h':
-      return new Date(now.getTime() - 60 * 60 * 1000);
-    case '24h':
-      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    case '7d':
-      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    case '30d':
-      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    default:
-      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  }
-}
 
 function groupByInterval(
   logs: { timestamp: Date }[],
