@@ -34,21 +34,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
   console.log('Received webhook event:', event.type);
 
-  // Store webhook event in database
+  // Store webhook event in database with unique event ID
+  let webhookEventId: string | null = null;
   try {
-    await prisma.webhookEvent.create({
+    const webhookEvent = await prisma.webhookEvent.create({
       data: {
-        eventId: event.id,
+        source: 'stripe',
         eventType: event.type,
-        data: event as any,
-        processed: false
+        payload: event as any,
+        status: 'pending',
+        attempts: 1
       }
     });
+    webhookEventId = webhookEvent.id;
   } catch (dbError: any) {
-    // If event already exists (duplicate webhook), ignore the error
-    if (!dbError.message?.includes('Unique constraint')) {
-      console.error('Failed to store webhook event:', dbError);
-    }
+    console.error('Failed to store webhook event:', dbError);
   }
 
   try {
@@ -259,14 +259,32 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
 
     // Mark webhook event as processed
-    await prisma.webhookEvent.updateMany({
-      where: { eventId: event.id },
-      data: { processed: true }
-    });
+    if (webhookEventId) {
+      await prisma.webhookEvent.update({
+        where: { id: webhookEventId },
+        data: { 
+          status: 'processed',
+          processedAt: new Date()
+        }
+      });
+    }
 
     res.json({ received: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
+    
+    // Mark webhook as failed
+    if (webhookEventId) {
+      await prisma.webhookEvent.update({
+        where: { id: webhookEventId },
+        data: { 
+          status: 'failed',
+          lastError: error instanceof Error ? error.message : 'Unknown error',
+          attempts: { increment: 1 }
+        }
+      });
+    }
+    
     res.status(500).send('Webhook processing failed');
   }
 });
