@@ -4,6 +4,9 @@ import { authenticateToken, requireAdmin } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
+
+// Import the shared Prisma client (should be singleton)
+// For now, create a local instance but ideally this should be in a shared db module
 const prisma = new PrismaClient();
 
 // All pricing plan admin routes require authentication and admin role
@@ -70,6 +73,24 @@ router.post('/', async (req: AuthRequest, res) => {
       });
     }
     
+    // Parse and validate numeric inputs
+    const parsedMonthlyPrice = parseFloat(monthlyPrice);
+    const parsedYearlyPrice = parseFloat(yearlyPrice);
+    const parsedTrialDays = parseInt(trialDays || '0');
+    const parsedSortOrder = parseInt(sortOrder || '0');
+    
+    if (isNaN(parsedMonthlyPrice) || isNaN(parsedYearlyPrice)) {
+      return res.status(400).json({ error: 'Invalid price values' });
+    }
+    
+    if (isNaN(parsedTrialDays) || parsedTrialDays < 0) {
+      return res.status(400).json({ error: 'Invalid trial days value' });
+    }
+    
+    if (isNaN(parsedSortOrder)) {
+      return res.status(400).json({ error: 'Invalid sort order value' });
+    }
+    
     // Check if name already exists
     const existing = await prisma.pricingPlan.findUnique({
       where: { name }
@@ -84,14 +105,14 @@ router.post('/', async (req: AuthRequest, res) => {
         name,
         displayName,
         description,
-        monthlyPrice: parseFloat(monthlyPrice),
-        yearlyPrice: parseFloat(yearlyPrice),
+        monthlyPrice: parsedMonthlyPrice,
+        yearlyPrice: parsedYearlyPrice,
         stripeMonthlyPriceId: stripeMonthlyPriceId || null,
         stripeYearlyPriceId: stripeYearlyPriceId || null,
-        trialDays: parseInt(trialDays || '0'),
+        trialDays: parsedTrialDays,
         features: features || {},
         active: active !== undefined ? active : true,
-        sortOrder: parseInt(sortOrder || '0')
+        sortOrder: parsedSortOrder
       }
     });
     
@@ -136,14 +157,44 @@ router.put('/:id', async (req: AuthRequest, res) => {
     const updateData: any = {};
     if (displayName !== undefined) updateData.displayName = displayName;
     if (description !== undefined) updateData.description = description;
-    if (monthlyPrice !== undefined) updateData.monthlyPrice = parseFloat(monthlyPrice);
-    if (yearlyPrice !== undefined) updateData.yearlyPrice = parseFloat(yearlyPrice);
+    
+    if (monthlyPrice !== undefined) {
+      const parsed = parseFloat(monthlyPrice);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ error: 'Invalid monthly price value' });
+      }
+      updateData.monthlyPrice = parsed;
+    }
+    
+    if (yearlyPrice !== undefined) {
+      const parsed = parseFloat(yearlyPrice);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ error: 'Invalid yearly price value' });
+      }
+      updateData.yearlyPrice = parsed;
+    }
+    
     if (stripeMonthlyPriceId !== undefined) updateData.stripeMonthlyPriceId = stripeMonthlyPriceId || null;
     if (stripeYearlyPriceId !== undefined) updateData.stripeYearlyPriceId = stripeYearlyPriceId || null;
-    if (trialDays !== undefined) updateData.trialDays = parseInt(trialDays);
+    
+    if (trialDays !== undefined) {
+      const parsed = parseInt(trialDays);
+      if (isNaN(parsed) || parsed < 0) {
+        return res.status(400).json({ error: 'Invalid trial days value' });
+      }
+      updateData.trialDays = parsed;
+    }
+    
     if (features !== undefined) updateData.features = features;
     if (active !== undefined) updateData.active = active;
-    if (sortOrder !== undefined) updateData.sortOrder = parseInt(sortOrder);
+    
+    if (sortOrder !== undefined) {
+      const parsed = parseInt(sortOrder);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ error: 'Invalid sort order value' });
+      }
+      updateData.sortOrder = parsed;
+    }
     
     const plan = await prisma.pricingPlan.update({
       where: { id },

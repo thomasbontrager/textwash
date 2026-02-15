@@ -504,16 +504,38 @@
         return;
       }
       
+      // Parse and validate numeric inputs
+      const monthlyPrice = parseFloat(document.getElementById('monthlyPrice').value);
+      const yearlyPrice = parseFloat(document.getElementById('yearlyPrice').value);
+      const trialDays = parseInt(document.getElementById('trialDays').value);
+      const sortOrder = parseInt(document.getElementById('sortOrder').value);
+      
+      // Validate parsed values
+      if (isNaN(monthlyPrice) || isNaN(yearlyPrice)) {
+        document.getElementById('formError').textContent = 'Invalid price values';
+        return;
+      }
+      
+      if (isNaN(trialDays) || trialDays < 0) {
+        document.getElementById('formError').textContent = 'Invalid trial days value';
+        return;
+      }
+      
+      if (isNaN(sortOrder)) {
+        document.getElementById('formError').textContent = 'Invalid sort order value';
+        return;
+      }
+      
       const planData = {
         name: document.getElementById('planName').value.toUpperCase(),
         displayName: document.getElementById('displayName').value,
         description: document.getElementById('description').value,
-        monthlyPrice: parseFloat(document.getElementById('monthlyPrice').value),
-        yearlyPrice: parseFloat(document.getElementById('yearlyPrice').value),
+        monthlyPrice: monthlyPrice,
+        yearlyPrice: yearlyPrice,
         stripeMonthlyPriceId: document.getElementById('stripeMonthlyPriceId').value || null,
         stripeYearlyPriceId: document.getElementById('stripeYearlyPriceId').value || null,
-        trialDays: parseInt(document.getElementById('trialDays').value),
-        sortOrder: parseInt(document.getElementById('sortOrder').value),
+        trialDays: trialDays,
+        sortOrder: sortOrder,
         features: features
       };
       
