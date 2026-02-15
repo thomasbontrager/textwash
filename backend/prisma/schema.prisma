@@ -9,7 +9,19 @@ datasource db {
 
 enum Role {
   USER
+  SUPPORT
   ADMIN
+  SUPER_ADMIN
+}
+
+enum Permission {
+  MANAGE_USERS
+  MANAGE_PLANS
+  MANAGE_FEATURE_FLAGS
+  MANAGE_OAUTH
+  VIEW_LOGS
+  IMPERSONATE_USERS
+  MANAGE_BILLING
 }
 
 enum SubscriptionPlan {
@@ -155,4 +167,14 @@ model AgentExecution {
   
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
+}
+
+model RolePermission {
+  id          String     @id @default(cuid())
+  role        Role
+  permission  Permission
+  createdAt   DateTime   @default(now())
+  
+  @@unique([role, permission])
+  @@index([role])
 }
