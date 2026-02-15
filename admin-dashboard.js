@@ -179,6 +179,7 @@ function formatPageTitle(pageName) {
     'plans': 'Subscription Plans',
     'feature-flags': 'Feature Flags',
     'billing': 'Billing Overview',
+    'webhooks': 'Webhook Monitor',
     'ai-usage': 'AI Usage Statistics',
     'logs': 'System Logs',
     'oauth': 'OAuth Configuration',
@@ -196,6 +197,11 @@ async function loadPageData(pageName) {
   // Example: Load users data
   if (pageName === 'users') {
     // await loadUsersData();
+  }
+  
+  // Load webhooks data
+  if (pageName === 'webhooks') {
+    await loadWebhooksData();
   }
   
   // Example: Load billing data
@@ -342,6 +348,233 @@ function formatCurrency(amount, currency = 'USD') {
   }).format(amount);
 }
 
+// Utility: Escape HTML to prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========== WEBHOOK MONITORING FUNCTIONS ==========
+
+// Constants
+const MAX_ERROR_DISPLAY_LENGTH = 50;
+
+// State for webhooks
+let webhookFilters = {
+  eventType: '',
+  status: '',
+  limit: 100,
+  offset: 0
+};
+
+// Setup webhook event listeners
+function setupWebhookListeners() {
+  const refreshBtn = document.getElementById('refreshWebhooks');
+  const applyFiltersBtn = document.getElementById('applyWebhookFilters');
+  const prevPageBtn = document.getElementById('webhookPrevPage');
+  const nextPageBtn = document.getElementById('webhookNextPage');
+  
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      webhookFilters.offset = 0;
+      loadWebhooksData();
+    });
+  }
+  
+  if (applyFiltersBtn) {
+    applyFiltersBtn.addEventListener('click', () => {
+      const eventType = document.getElementById('webhookEventTypeFilter').value;
+      const status = document.getElementById('webhookStatusFilter').value;
+      
+      webhookFilters.eventType = eventType;
+      webhookFilters.status = status;
+      webhookFilters.offset = 0;
+      
+      loadWebhooksData();
+    });
+  }
+  
+  if (prevPageBtn) {
+    prevPageBtn.addEventListener('click', () => {
+      if (webhookFilters.offset > 0) {
+        webhookFilters.offset -= webhookFilters.limit;
+        loadWebhooksData();
+      }
+    });
+  }
+  
+  if (nextPageBtn) {
+    nextPageBtn.addEventListener('click', () => {
+      webhookFilters.offset += webhookFilters.limit;
+      loadWebhooksData();
+    });
+  }
+}
+
+// Load webhooks data from API
+async function loadWebhooksData() {
+  try {
+    const params = new URLSearchParams();
+    if (webhookFilters.eventType) params.append('eventType', webhookFilters.eventType);
+    if (webhookFilters.status) params.append('status', webhookFilters.status);
+    params.append('limit', webhookFilters.limit.toString());
+    params.append('offset', webhookFilters.offset.toString());
+    
+    const data = await apiRequest(`/admin/webhooks?${params.toString()}`, 'GET');
+    
+    displayWebhooks(data);
+    updateWebhookPagination(data);
+  } catch (error) {
+    console.error('Failed to load webhooks:', error);
+    showToast('Failed to load webhooks', 'error');
+    displayWebhooksError();
+  }
+}
+
+// Display webhooks in the table
+function displayWebhooks(data) {
+  const tbody = document.getElementById('webhooksTableBody');
+  
+  if (!tbody) return;
+  
+  if (!data.webhooks || data.webhooks.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-8 text-gray-500">
+          <div class="flex flex-col items-center">
+            <svg class="w-12 h-12 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <p>No webhook events found</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = data.webhooks.map(webhook => {
+    const statusColor = webhook.status === 'processed' ? 'text-green-400' : 
+                       webhook.status === 'failed' ? 'text-red-400' : 
+                       'text-yellow-400';
+    
+    const statusBadge = webhook.status === 'processed' ? 'bg-green-900/30 text-green-400' : 
+                       webhook.status === 'failed' ? 'bg-red-900/30 text-red-400' : 
+                       'bg-yellow-900/30 text-yellow-400';
+    
+    const timestamp = new Date(webhook.createdAt).toLocaleString();
+    const errorText = webhook.lastError ? webhook.lastError.substring(0, MAX_ERROR_DISPLAY_LENGTH) + '...' : '-';
+    
+    return `
+      <tr class="border-b border-gray-800 hover:bg-panel-hover">
+        <td class="py-3 px-4">
+          <div class="text-sm text-white font-mono">${escapeHtml(webhook.eventType)}</div>
+          <div class="text-xs text-gray-500">${webhook.source}</div>
+        </td>
+        <td class="py-3 px-4">
+          <span class="px-2 py-1 text-xs rounded ${statusBadge}">${webhook.status}</span>
+        </td>
+        <td class="py-3 px-4 text-sm text-gray-400">${timestamp}</td>
+        <td class="py-3 px-4 text-sm text-gray-400">${webhook.attempts}</td>
+        <td class="py-3 px-4">
+          <div class="text-sm ${webhook.lastError ? 'text-red-400' : 'text-gray-500'}" title="${escapeHtml(webhook.lastError || '')}">
+            ${escapeHtml(errorText)}
+          </div>
+        </td>
+        <td class="py-3 px-4">
+          <div class="flex gap-2">
+            <button onclick="adminDashboard.viewWebhookJSON('${webhook.id}')" class="text-primary hover:text-primary-dark text-sm">
+              View JSON
+            </button>
+            ${webhook.status === 'failed' ? `
+              <button onclick="adminDashboard.retryWebhook('${webhook.id}')" class="text-yellow-400 hover:text-yellow-300 text-sm">
+                Retry
+              </button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Display error state
+function displayWebhooksError() {
+  const tbody = document.getElementById('webhooksTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" class="text-center py-8 text-gray-500">
+        <div class="flex flex-col items-center">
+          <svg class="w-12 h-12 text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p>Failed to load webhook events</p>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+// Update pagination controls
+function updateWebhookPagination(data) {
+  const totalEl = document.getElementById('webhookTotal');
+  const prevBtn = document.getElementById('webhookPrevPage');
+  const nextBtn = document.getElementById('webhookNextPage');
+  
+  if (totalEl) {
+    totalEl.textContent = data.total || 0;
+  }
+  
+  if (prevBtn) {
+    prevBtn.disabled = webhookFilters.offset === 0;
+  }
+  
+  if (nextBtn) {
+    const hasMore = (webhookFilters.offset + webhookFilters.limit) < data.total;
+    nextBtn.disabled = !hasMore;
+  }
+}
+
+// View webhook JSON in modal
+async function viewWebhookJSON(webhookId) {
+  try {
+    const webhook = await apiRequest(`/admin/webhooks/${webhookId}`, 'GET');
+    
+    openModal(
+      `Webhook Event: ${webhook.eventType}`,
+      `<div class="bg-panel-dark p-4 rounded-lg overflow-auto max-h-96">
+        <pre class="text-sm text-gray-300">${JSON.stringify(webhook.payload, null, 2)}</pre>
+      </div>`,
+      null,
+      null
+    );
+  } catch (error) {
+    console.error('Failed to load webhook details:', error);
+    showToast('Failed to load webhook details', 'error');
+  }
+}
+
+// Retry a failed webhook
+async function retryWebhook(webhookId) {
+  try {
+    await apiRequest(`/admin/webhooks/${webhookId}/retry`, 'POST');
+    showToast('Webhook queued for retry', 'success');
+    loadWebhooksData();
+  } catch (error) {
+    console.error('Failed to retry webhook:', error);
+    showToast('Failed to retry webhook', 'error');
+  }
+}
+
+// Initialize webhook listeners on page load
+document.addEventListener('DOMContentLoaded', () => {
+  setupWebhookListeners();
+});
+
 // Export functions for use in HTML onclick handlers (if needed)
 window.adminDashboard = {
   openModal,
@@ -349,5 +582,7 @@ window.adminDashboard = {
   navigateToPage,
   handleLogout,
   apiRequest,
-  showToast
+  showToast,
+  viewWebhookJSON,
+  retryWebhook
 };
