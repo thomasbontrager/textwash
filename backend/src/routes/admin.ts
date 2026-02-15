@@ -505,4 +505,84 @@ router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// ===== WEBHOOK MONITORING ROUTES =====
+
+// GET /admin/webhooks - List webhook events with filtering
+// Requires MANAGE_BILLING permission
+router.get('/webhooks', requirePermission([Permission.MANAGE_BILLING]), async (req: AuthRequest, res) => {
+  try {
+    const { eventType, status, limit = '100', offset = '0' } = req.query;
+    
+    const where: any = {};
+    
+    // Filter by event type if provided
+    if (eventType) {
+      where.eventType = eventType as string;
+    }
+    
+    // Filter by status if provided
+    if (status) {
+      where.status = status as string;
+    }
+    
+    // Get total count for pagination
+    const total = await prisma.webhookEvent.count({ where });
+    
+    // Get webhook events
+    const webhooks = await prisma.webhookEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: parseInt(limit as string),
+      skip: parseInt(offset as string)
+    });
+    
+    res.json({
+      webhooks,
+      total,
+      limit: parseInt(limit as string),
+      offset: parseInt(offset as string)
+    });
+  } catch (error) {
+    console.error('List webhooks error:', error);
+    res.status(500).json({ error: 'Failed to list webhooks' });
+  }
+});
+
+// POST /admin/webhooks/:id/retry - Retry a failed webhook
+// Requires MANAGE_BILLING permission
+router.post('/webhooks/:id/retry', requirePermission([Permission.MANAGE_BILLING]), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the webhook event
+    const webhook = await prisma.webhookEvent.findUnique({
+      where: { id }
+    });
+    
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook event not found' });
+    }
+    
+    // Reset the webhook status to pending for retry
+    await prisma.webhookEvent.update({
+      where: { id },
+      data: {
+        status: 'pending',
+        lastError: null,
+        attempts: webhook.attempts + 1
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Webhook event queued for retry'
+    });
+  } catch (error) {
+    console.error('Retry webhook error:', error);
+    res.status(500).json({ error: 'Failed to retry webhook' });
+  }
+});
+
 export default router;
