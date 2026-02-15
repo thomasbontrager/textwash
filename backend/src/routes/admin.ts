@@ -1,21 +1,21 @@
 import express from 'express';
 import { AuthRequest } from '../types';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth';
 import { reloadAgents, getAgentNames, getAllAgents } from '../services/agentRegistry';
 import { getRules, updateRules, clearRuleCache, getLatestRuleVersion } from '../services/ruleLoader';
 import { getPolicies, createPolicy, updatePolicy, deletePolicy } from '../services/policyService';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role, Permission } from '@prisma/client';
 import crypto from 'crypto';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// All admin routes require authentication and admin role
+// All admin routes require authentication
 router.use(authenticateToken);
-router.use(requireAdmin);
 
 // GET /admin/agents - List all registered agents
-router.get('/agents', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/agents', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const agents = getAllAgents();
     const agentList = agents.map(agent => ({
@@ -31,7 +31,8 @@ router.get('/agents', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/agents/reload - Trigger hot reload of agents
-router.post('/agents/reload', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.post('/agents/reload', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
   try {
     await reloadAgents();
     const agentNames = getAgentNames();
@@ -49,7 +50,8 @@ router.post('/agents/reload', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/rules/:agentName - Get rules for a specific agent
-router.get('/rules/:agentName', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/rules/:agentName', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const rules = await getRules(agentName);
@@ -67,7 +69,8 @@ router.get('/rules/:agentName', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/rules/:agentName - Update rules for a specific agent
-router.put('/rules/:agentName', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.put('/rules/:agentName', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const { rules, description } = req.body;
@@ -92,7 +95,8 @@ router.put('/rules/:agentName', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/rules/:agentName/clear-cache - Clear cache for specific agent
-router.post('/rules/:agentName/clear-cache', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.post('/rules/:agentName/clear-cache', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     clearRuleCache(agentName);
@@ -108,7 +112,8 @@ router.post('/rules/:agentName/clear-cache', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/policies - List all policies
-router.get('/policies', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/policies', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -137,7 +142,8 @@ router.get('/policies', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/policies - Create a new policy
-router.post('/policies', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.post('/policies', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
   try {
     const { organizationId, name, type, rules } = req.body;
     
@@ -158,7 +164,8 @@ router.post('/policies', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/policies/:policyId - Update a policy
-router.put('/policies/:policyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.put('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     const { rules, enabled } = req.body;
@@ -176,7 +183,8 @@ router.put('/policies/:policyId', async (req: AuthRequest, res) => {
 });
 
 // DELETE /admin/policies/:policyId - Delete a policy
-router.delete('/policies/:policyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.delete('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     
@@ -193,7 +201,8 @@ router.delete('/policies/:policyId', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/api-keys - List API keys
-router.get('/api-keys', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/api-keys', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -234,7 +243,8 @@ router.get('/api-keys', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/api-keys - Create a new API key
-router.post('/api-keys', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.post('/api-keys', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
   try {
     const { userId, organizationId, name, rateLimit, enabledAgents } = req.body;
     
@@ -272,7 +282,8 @@ router.post('/api-keys', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/api-keys/:keyId - Update API key
-router.put('/api-keys/:keyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.put('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     const { enabled, rateLimit, enabledAgents } = req.body;
@@ -297,7 +308,8 @@ router.put('/api-keys/:keyId', async (req: AuthRequest, res) => {
 });
 
 // DELETE /admin/api-keys/:keyId - Delete API key
-router.delete('/api-keys/:keyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.delete('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     
@@ -316,7 +328,8 @@ router.delete('/api-keys/:keyId', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/usage - Get usage statistics
-router.get('/usage', async (req: AuthRequest, res) => {
+// Requires VIEW_LOGS permission
+router.get('/usage', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
   try {
     const { organizationId, startDate, endDate } = req.query;
     
@@ -371,6 +384,124 @@ router.get('/usage', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Get usage error:', error);
     res.status(500).json({ error: 'Failed to get usage' });
+  }
+});
+
+// ===== FEATURE FLAG ROUTES =====
+
+// GET /admin/feature-flags - List all feature flags
+router.get('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const flags = await prisma.featureFlag.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    res.json(flags);
+  } catch (error) {
+    console.error('List feature flags error:', error);
+    res.status(500).json({ error: 'Failed to list feature flags' });
+  }
+});
+
+// GET /admin/feature-flags/:id - Get a specific feature flag
+router.get('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const flag = await prisma.featureFlag.findUnique({
+      where: { id }
+    });
+    
+    if (!flag) {
+      return res.status(404).json({ error: 'Feature flag not found' });
+    }
+    
+    res.json(flag);
+  } catch (error) {
+    console.error('Get feature flag error:', error);
+    res.status(500).json({ error: 'Failed to get feature flag' });
+  }
+});
+
+// POST /admin/feature-flags - Create a new feature flag
+router.post('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const { name, description, isEnabled, rolloutPercentage, planAccess, userOverrides } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    const flag = await prisma.featureFlag.create({
+      data: {
+        name,
+        description: description || null,
+        isEnabled: isEnabled ?? false,
+        rolloutPercentage: rolloutPercentage ?? 0,
+        planAccess: planAccess || null,
+        userOverrides: userOverrides || null
+      }
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Feature flag created successfully',
+      flag
+    });
+  } catch (error) {
+    console.error('Create feature flag error:', error);
+    res.status(500).json({ error: 'Failed to create feature flag' });
+  }
+});
+
+// PUT /admin/feature-flags/:id - Update a feature flag
+router.put('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, isEnabled, rolloutPercentage, planAccess, userOverrides } = req.body;
+    
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (isEnabled !== undefined) updateData.isEnabled = isEnabled;
+    if (rolloutPercentage !== undefined) updateData.rolloutPercentage = rolloutPercentage;
+    if (planAccess !== undefined) updateData.planAccess = planAccess;
+    if (userOverrides !== undefined) updateData.userOverrides = userOverrides;
+    
+    const flag = await prisma.featureFlag.update({
+      where: { id },
+      data: updateData
+    });
+    
+    res.json({
+      success: true,
+      message: 'Feature flag updated successfully',
+      flag
+    });
+  } catch (error) {
+    console.error('Update feature flag error:', error);
+    res.status(500).json({ error: 'Failed to update feature flag' });
+  }
+});
+
+// DELETE /admin/feature-flags/:id - Delete a feature flag
+router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    await prisma.featureFlag.delete({
+      where: { id }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Feature flag deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete feature flag error:', error);
+    res.status(500).json({ error: 'Failed to delete feature flag' });
   }
 });
 
