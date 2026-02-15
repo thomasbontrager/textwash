@@ -254,6 +254,324 @@ async function main() {
   });
   
   console.log('✅ Pricing plans seeded');
+  
+  console.log('\nSeeding email templates...');
+  
+  // Welcome Email Template
+  await prisma.emailTemplate.upsert({
+    where: { name: 'welcome' },
+    update: {},
+    create: {
+      name: 'welcome',
+      subject: 'Welcome to TextWash, {{name}}!',
+      htmlBody: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧼 Welcome to TextWash!</h1>
+    </div>
+    <div class="content">
+      <h2>Hi {{name}},</h2>
+      <p>We're excited to have you on board! TextWash is your intelligent text processing platform powered by self-updating AI agents.</p>
+      
+      <p><strong>Here's what you can do:</strong></p>
+      <ul>
+        <li>Clean and normalize text automatically</li>
+        <li>Rewrite content with AI assistance</li>
+        <li>Apply custom policies and rules</li>
+        <li>Access powerful API endpoints</li>
+      </ul>
+      
+      <p>Get started by exploring our API or dashboard:</p>
+      <a href="https://textwash.app/dashboard" class="button">Go to Dashboard</a>
+      
+      <p>If you have any questions, our support team is here to help!</p>
+      
+      <p>Best regards,<br>The TextWash Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 TextWash. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+      textBody: `Welcome to TextWash, {{name}}!
+
+We're excited to have you on board! TextWash is your intelligent text processing platform powered by self-updating AI agents.
+
+Here's what you can do:
+- Clean and normalize text automatically
+- Rewrite content with AI assistance
+- Apply custom policies and rules
+- Access powerful API endpoints
+
+Get started by visiting: https://textwash.app/dashboard
+
+If you have any questions, our support team is here to help!
+
+Best regards,
+The TextWash Team
+
+---
+© 2026 TextWash. All rights reserved.`,
+      variables: ['name'],
+      isActive: true
+    }
+  });
+  
+  // Password Reset Email Template
+  await prisma.emailTemplate.upsert({
+    where: { name: 'password_reset' },
+    update: {},
+    create: {
+      name: 'password_reset',
+      subject: 'Reset Your TextWash Password',
+      htmlBody: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #667eea; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 Password Reset Request</h1>
+    </div>
+    <div class="content">
+      <h2>Hi {{name}},</h2>
+      <p>We received a request to reset your TextWash password.</p>
+      
+      <p>Click the button below to reset your password:</p>
+      <a href="{{resetUrl}}" class="button">Reset Password</a>
+      
+      <div class="warning">
+        <strong>⚠️ Security Notice:</strong><br>
+        This link will expire in 1 hour. If you didn't request this reset, please ignore this email and your password will remain unchanged.
+      </div>
+      
+      <p>If the button doesn't work, copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #667eea;">{{resetUrl}}</p>
+      
+      <p>Best regards,<br>The TextWash Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 TextWash. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+      textBody: `Password Reset Request
+
+Hi {{name}},
+
+We received a request to reset your TextWash password.
+
+Click this link to reset your password:
+{{resetUrl}}
+
+⚠️ Security Notice:
+This link will expire in 1 hour. If you didn't request this reset, please ignore this email and your password will remain unchanged.
+
+Best regards,
+The TextWash Team
+
+---
+© 2026 TextWash. All rights reserved.`,
+      variables: ['name', 'resetUrl'],
+      isActive: true
+    }
+  });
+  
+  // Upgrade Confirmation Email Template
+  await prisma.emailTemplate.upsert({
+    where: { name: 'upgrade_confirmation' },
+    update: {},
+    create: {
+      name: 'upgrade_confirmation',
+      subject: 'Welcome to {{plan}} - Upgrade Confirmed!',
+      htmlBody: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
+    .button { display: inline-block; background: #11998e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .highlight { background: #e8f5e9; padding: 20px; border-radius: 4px; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Upgrade Successful!</h1>
+    </div>
+    <div class="content">
+      <h2>Hi {{name}},</h2>
+      <p>Congratulations! Your account has been successfully upgraded to the <strong>{{plan}}</strong> plan.</p>
+      
+      <div class="highlight">
+        <h3>Your New Features:</h3>
+        <p>You now have access to:</p>
+        <ul>
+          <li>Increased API request limits</li>
+          <li>Advanced AI-powered text processing</li>
+          <li>Priority support</li>
+          <li>Custom policies and rules</li>
+        </ul>
+        <p><strong>Current Usage:</strong> {{usage}}</p>
+      </div>
+      
+      <p>Start making the most of your upgraded plan:</p>
+      <a href="https://textwash.app/dashboard" class="button">Go to Dashboard</a>
+      
+      <p>Thank you for choosing TextWash!</p>
+      
+      <p>Best regards,<br>The TextWash Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 TextWash. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+      textBody: `Upgrade Successful!
+
+Hi {{name}},
+
+Congratulations! Your account has been successfully upgraded to the {{plan}} plan.
+
+Your New Features:
+You now have access to:
+- Increased API request limits
+- Advanced AI-powered text processing
+- Priority support
+- Custom policies and rules
+
+Current Usage: {{usage}}
+
+Start making the most of your upgraded plan:
+https://textwash.app/dashboard
+
+Thank you for choosing TextWash!
+
+Best regards,
+The TextWash Team
+
+---
+© 2026 TextWash. All rights reserved.`,
+      variables: ['name', 'plan', 'usage'],
+      isActive: true
+    }
+  });
+  
+  // Cancellation Email Template
+  await prisma.emailTemplate.upsert({
+    where: { name: 'cancellation' },
+    update: {},
+    create: {
+      name: 'cancellation',
+      subject: 'Your TextWash Subscription Has Been Cancelled',
+      htmlBody: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #546e7a; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .info-box { background: #e3f2fd; padding: 20px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #2196f3; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Subscription Cancelled</h1>
+    </div>
+    <div class="content">
+      <h2>Hi {{name}},</h2>
+      <p>We're sorry to see you go. Your {{plan}} subscription has been cancelled as requested.</p>
+      
+      <div class="info-box">
+        <h3>What happens now?</h3>
+        <ul>
+          <li>Your subscription will remain active until the end of your current billing period</li>
+          <li>No further charges will be made</li>
+          <li>You can still access your account and features until the subscription expires</li>
+          <li>Your data will be retained for 30 days in case you change your mind</li>
+        </ul>
+      </div>
+      
+      <p><strong>We'd love to hear your feedback!</strong> If you have a moment, please let us know why you're leaving so we can improve our service.</p>
+      
+      <p>Changed your mind? You can reactivate your subscription anytime:</p>
+      <a href="https://textwash.app/pricing" class="button">Reactivate Subscription</a>
+      
+      <p>Thank you for using TextWash. We hope to see you again soon!</p>
+      
+      <p>Best regards,<br>The TextWash Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 TextWash. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+      textBody: `Subscription Cancelled
+
+Hi {{name}},
+
+We're sorry to see you go. Your {{plan}} subscription has been cancelled as requested.
+
+What happens now?
+- Your subscription will remain active until the end of your current billing period
+- No further charges will be made
+- You can still access your account and features until the subscription expires
+- Your data will be retained for 30 days in case you change your mind
+
+We'd love to hear your feedback! If you have a moment, please let us know why you're leaving so we can improve our service.
+
+Changed your mind? You can reactivate your subscription anytime:
+https://textwash.app/pricing
+
+Thank you for using TextWash. We hope to see you again soon!
+
+Best regards,
+The TextWash Team
+
+---
+© 2026 TextWash. All rights reserved.`,
+      variables: ['name', 'plan'],
+      isActive: true
+    }
+  });
+  
+  console.log('✅ Email templates seeded');
 }
 
 main()
