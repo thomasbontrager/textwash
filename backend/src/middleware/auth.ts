@@ -5,6 +5,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Permission enum
+export enum Permission {
+  MANAGE_USERS = 'MANAGE_USERS',
+  MANAGE_STRIPE = 'MANAGE_STRIPE',
+  MANAGE_AGENTS = 'MANAGE_AGENTS',
+  MANAGE_API_KEYS = 'MANAGE_API_KEYS',
+  VIEW_ANALYTICS = 'VIEW_ANALYTICS'
+}
+
+// Admin role has all permissions
+const ADMIN_PERMISSIONS = Object.values(Permission);
+
 export async function authenticateToken(
   req: AuthRequest,
   res: Response,
@@ -121,6 +133,24 @@ export function requirePlan(allowedPlans: string[]) {
         error: 'Insufficient plan',
         required: allowedPlans,
         current: subscription?.plan || 'NONE'
+      });
+    }
+    
+    next();
+  };
+}
+
+export function requirePermission(permission: Permission) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Check if user has the required permission (admin has all permissions)
+    if (req.user.role !== 'ADMIN' || !ADMIN_PERMISSIONS.includes(permission)) {
+      return res.status(403).json({ 
+        error: 'Insufficient permissions',
+        required: permission
       });
     }
     

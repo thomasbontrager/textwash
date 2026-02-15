@@ -26,12 +26,20 @@ enum SubscriptionStatus {
   TRIALING
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
   passwordHash  String
   role          Role          @default(USER)
+  status        UserStatus    @default(ACTIVE)
   stripeId      String?       @unique
+  deletedAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   
@@ -41,6 +49,10 @@ model User {
   organization  Organization? @relation(fields: [organizationId], references: [id])
   organizationId String?
   agentExecutions AgentExecution[]
+  loginLogs     LoginLog[]
+  
+  @@index([status, email])
+  @@index([deletedAt])
 }
 
 model Subscription {
@@ -155,4 +167,16 @@ model AgentExecution {
   
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
+}
+
+model LoginLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  ipAddress   String?
+  userAgent   String?
+  success     Boolean  @default(true)
+  timestamp   DateTime @default(now())
+  
+  @@index([userId, timestamp])
 }

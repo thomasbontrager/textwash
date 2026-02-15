@@ -7,6 +7,7 @@ import { extractSubdomain, requireSubdomain, getSubdomainUrl } from './middlewar
 import { startAgentHotReload } from './services/agentRegistry';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
+import usersRoutes from './routes/users';
 import apiRoutes from './routes/api';
 import stripeRoutes from './routes/stripe';
 import billingRoutes from './routes/billing';
@@ -74,6 +75,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
+app.use('/api/admin/users', requireSubdomain(['admin', 'api', '']), usersRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
 app.use('/api', apiRoutes);
 

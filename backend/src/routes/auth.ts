@@ -92,8 +92,31 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
+    // Check if user is suspended or deleted
+    if (user.status === 'SUSPENDED') {
+      return res.status(403).json({ error: 'Account is suspended' });
+    }
+    
+    if (user.status === 'DELETED' || user.deletedAt) {
+      return res.status(403).json({ error: 'Account is deleted' });
+    }
+    
     // Verify password
     const valid = await bcrypt.compare(password, user.passwordHash);
+    
+    // Log login attempt
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    await prisma.loginLog.create({
+      data: {
+        userId: user.id,
+        ipAddress,
+        userAgent,
+        success: valid
+      }
+    });
+    
     if (!valid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
