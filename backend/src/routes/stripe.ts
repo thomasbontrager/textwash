@@ -38,17 +38,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   try {
     await prisma.webhookEvent.create({
       data: {
-        eventId: event.id,
+        source: 'stripe',
         eventType: event.type,
-        data: event as any,
-        processed: false
+        payload: event as any,
+        status: 'pending',
+        attempts: 0
       }
     });
   } catch (dbError: any) {
-    // If event already exists (duplicate webhook), ignore the error
-    if (!dbError.message?.includes('Unique constraint')) {
-      console.error('Failed to store webhook event:', dbError);
-    }
+    console.error('Failed to store webhook event:', dbError);
   }
 
   try {
@@ -260,13 +258,33 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
     // Mark webhook event as processed
     await prisma.webhookEvent.updateMany({
-      where: { eventId: event.id },
-      data: { processed: true }
+      where: { 
+        eventType: event.type,
+        source: 'stripe'
+      },
+      data: { 
+        status: 'processed',
+        processedAt: new Date()
+      }
     });
 
     res.json({ received: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
+    
+    // Mark webhook as failed
+    await prisma.webhookEvent.updateMany({
+      where: { 
+        eventType: event.type,
+        source: 'stripe',
+        status: 'pending'
+      },
+      data: { 
+        status: 'failed',
+        lastError: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+    
     res.status(500).send('Webhook processing failed');
   }
 });

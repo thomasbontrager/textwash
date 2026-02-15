@@ -29,6 +29,8 @@ enum SubscriptionPlan {
   STARTER
   PRO
   ENTERPRISE
+}
+
 // Enums
 enum RoleType {
   SUPER_ADMIN
@@ -47,13 +49,6 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-enum SubscriptionPlan {
-  FREE
-  STARTER
-  PRO
-  ENTERPRISE
-}
-
 // User Model with soft delete
 model User {
   id           String    @id @default(cuid())
@@ -62,12 +57,12 @@ model User {
   firstName    String?
   lastName     String?
   stripeId     String?   @unique
+  role         Role      @default(USER)
   deletedAt    DateTime? // Soft delete support
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   // Relations
-  roles           UserRole[]
   subscriptions   Subscription[]
   adminProfile    AdminProfile?
   apiKeys         ApiKey[]
@@ -84,70 +79,74 @@ model User {
   @@index([organizationId])
 }
 
-// Role Model
-model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  type        RoleType @default(USER)
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Role Model - COMMENTED OUT due to conflict with Role enum
+// The code uses Role as an enum, not a model
+// model Role {
+//   id          String   @id @default(cuid())
+//   name        String   @unique
+//   type        RoleType @default(USER)
+//   description String?
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+// 
+//   // Relations
+//   users       UserRole[]
+//   permissions RolePermission[]
+// 
+//   @@index([type])
+// }
 
-  // Relations
-  users       UserRole[]
-  permissions RolePermission[]
+// Permission Model - COMMENTED OUT due to conflict with Permission enum
+// The code uses Permission as an enum, not a model
+// model Permission {
+//   id          String   @id @default(cuid())
+//   name        String   @unique
+//   resource    String
+//   action      String
+//   description String?
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+// 
+//   // Relations
+//   roles RolePermission[]
+// 
+//   @@unique([resource, action])
+//   @@index([resource])
+// }
 
-  @@index([type])
-}
+// Many-to-many relation between Role and Permission - COMMENTED OUT
+// This needs to be refactored to work with enum-based roles
+// model RolePermission {
+//   id           String   @id @default(cuid())
+//   roleId       String
+//   permissionId String
+//   createdAt    DateTime @default(now())
+// 
+//   // Relations
+//   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+//   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+// 
+//   @@unique([roleId, permissionId])
+//   @@index([roleId])
+//   @@index([permissionId])
+// }
 
-// Permission Model
-model Permission {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  resource    String
-  action      String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  roles RolePermission[]
-
-  @@unique([resource, action])
-  @@index([resource])
-}
-
-// Many-to-many relation between Role and Permission
-model RolePermission {
-  id           String   @id @default(cuid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-
-  // Relations
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@index([permissionId])
-}
-
-// Many-to-many relation between User and Role
-model UserRole {
-  id        String   @id @default(cuid())
-  userId    String
-  roleId    String
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId])
-  @@index([userId])
-  @@index([roleId])
-}
+// Many-to-many relation between User and Role - COMMENTED OUT
+// User model needs a direct 'role' enum field instead
+// model UserRole {
+//   id        String   @id @default(cuid())
+//   userId    String
+//   roleId    String
+//   createdAt DateTime @default(now())
+// 
+//   // Relations
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+// 
+//   @@unique([userId, roleId])
+//   @@index([userId])
+//   @@index([roleId])
+// }
 
 // Plan Model with JSON fields
 model Plan {
@@ -429,24 +428,4 @@ model AgentExecution {
 
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
-}
-
-model RolePermission {
-  id          String     @id @default(cuid())
-  role        Role
-  permission  Permission
-  createdAt   DateTime   @default(now())
-  
-  @@unique([role, permission])
-  @@index([role])
-model WebhookEvent {
-  id              String   @id @default(cuid())
-  eventId         String   @unique
-  eventType       String
-  data            Json
-  processed       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  
-  @@index([eventType, createdAt])
-  @@index([processed, createdAt])
 }
