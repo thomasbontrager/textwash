@@ -513,6 +513,18 @@ router.get('/webhooks', requirePermission([Permission.MANAGE_BILLING]), async (r
   try {
     const { eventType, status, limit = '100', offset = '0' } = req.query;
     
+    // Validate and sanitize pagination parameters
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+    
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 1000) {
+      return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
+    }
+    
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      return res.status(400).json({ error: 'Invalid offset parameter. Must be a non-negative integer.' });
+    }
+    
     const where: any = {};
     
     // Filter by event type if provided
@@ -534,19 +546,40 @@ router.get('/webhooks', requirePermission([Permission.MANAGE_BILLING]), async (r
       orderBy: {
         createdAt: 'desc'
       },
-      take: parseInt(limit as string),
-      skip: parseInt(offset as string)
+      take: parsedLimit,
+      skip: parsedOffset
     });
     
     res.json({
       webhooks,
       total,
-      limit: parseInt(limit as string),
-      offset: parseInt(offset as string)
+      limit: parsedLimit,
+      offset: parsedOffset
     });
   } catch (error) {
     console.error('List webhooks error:', error);
     res.status(500).json({ error: 'Failed to list webhooks' });
+  }
+});
+
+// GET /admin/webhooks/:id - Get a specific webhook event
+// Requires MANAGE_BILLING permission
+router.get('/webhooks/:id', requirePermission([Permission.MANAGE_BILLING]), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const webhook = await prisma.webhookEvent.findUnique({
+      where: { id }
+    });
+    
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook event not found' });
+    }
+    
+    res.json(webhook);
+  } catch (error) {
+    console.error('Get webhook error:', error);
+    res.status(500).json({ error: 'Failed to get webhook' });
   }
 });
 

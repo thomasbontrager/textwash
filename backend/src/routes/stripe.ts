@@ -34,17 +34,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
   console.log('Received webhook event:', event.type);
 
-  // Store webhook event in database
+  // Store webhook event in database with unique event ID
+  let webhookEventId: string | null = null;
   try {
-    await prisma.webhookEvent.create({
+    const webhookEvent = await prisma.webhookEvent.create({
       data: {
         source: 'stripe',
         eventType: event.type,
         payload: event as any,
         status: 'pending',
-        attempts: 0
+        attempts: 1
       }
     });
+    webhookEventId = webhookEvent.id;
   } catch (dbError: any) {
     console.error('Failed to store webhook event:', dbError);
   }
@@ -257,33 +259,31 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
 
     // Mark webhook event as processed
-    await prisma.webhookEvent.updateMany({
-      where: { 
-        eventType: event.type,
-        source: 'stripe'
-      },
-      data: { 
-        status: 'processed',
-        processedAt: new Date()
-      }
-    });
+    if (webhookEventId) {
+      await prisma.webhookEvent.update({
+        where: { id: webhookEventId },
+        data: { 
+          status: 'processed',
+          processedAt: new Date()
+        }
+      });
+    }
 
     res.json({ received: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
     
     // Mark webhook as failed
-    await prisma.webhookEvent.updateMany({
-      where: { 
-        eventType: event.type,
-        source: 'stripe',
-        status: 'pending'
-      },
-      data: { 
-        status: 'failed',
-        lastError: error instanceof Error ? error.message : 'Unknown error'
-      }
-    });
+    if (webhookEventId) {
+      await prisma.webhookEvent.update({
+        where: { id: webhookEventId },
+        data: { 
+          status: 'failed',
+          lastError: error instanceof Error ? error.message : 'Unknown error',
+          attempts: { increment: 1 }
+        }
+      });
+    }
     
     res.status(500).send('Webhook processing failed');
   }

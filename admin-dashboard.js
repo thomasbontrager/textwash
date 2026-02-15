@@ -358,6 +358,9 @@ function escapeHtml(text) {
 
 // ========== WEBHOOK MONITORING FUNCTIONS ==========
 
+// Constants
+const MAX_ERROR_DISPLAY_LENGTH = 50;
+
 // State for webhooks
 let webhookFilters = {
   eventType: '',
@@ -462,7 +465,7 @@ function displayWebhooks(data) {
                        'bg-yellow-900/30 text-yellow-400';
     
     const timestamp = new Date(webhook.createdAt).toLocaleString();
-    const errorText = webhook.lastError ? webhook.lastError.substring(0, 50) + '...' : '-';
+    const errorText = webhook.lastError ? webhook.lastError.substring(0, MAX_ERROR_DISPLAY_LENGTH) + '...' : '-';
     
     return `
       <tr class="border-b border-gray-800 hover:bg-panel-hover">
@@ -539,16 +542,7 @@ function updateWebhookPagination(data) {
 // View webhook JSON in modal
 async function viewWebhookJSON(webhookId) {
   try {
-    const params = new URLSearchParams();
-    params.append('limit', '1');
-    
-    const data = await apiRequest(`/admin/webhooks?${params.toString()}`, 'GET');
-    const webhook = data.webhooks.find(w => w.id === webhookId);
-    
-    if (!webhook) {
-      showToast('Webhook not found', 'error');
-      return;
-    }
+    const webhook = await apiRequest(`/admin/webhooks/${webhookId}`, 'GET');
     
     openModal(
       `Webhook Event: ${webhook.eventType}`,
