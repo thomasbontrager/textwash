@@ -35,6 +35,12 @@ export function apiLogger(
     // Log asynchronously to avoid blocking response
     setImmediate(async () => {
       try {
+        // Get client IP, checking X-Forwarded-For for proxied requests
+        const forwardedFor = req.headers['x-forwarded-for'];
+        const clientIp = forwardedFor 
+          ? (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor.split(',')[0].trim())
+          : req.ip || req.socket.remoteAddress || 'unknown';
+        
         await prisma.aPILog.create({
           data: {
             userId: req.user?.id || null,
@@ -42,7 +48,7 @@ export function apiLogger(
             endpoint: req.path,
             statusCode: res.statusCode,
             responseTime,
-            ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+            ipAddress: clientIp,
             userAgent: req.headers['user-agent'] || null,
             requestBody: ['POST', 'PUT', 'PATCH'].includes(req.method) 
               ? sanitizeRequestBody(req.body) 
@@ -103,7 +109,7 @@ function sanitizeObject(obj: any): any {
   // Handle objects
   if (typeof obj === 'object') {
     const sanitized: any = {};
-    const sensitiveFields = ['password', 'passwordHash', 'apiKey', 'token', 'secret', 'key'];
+    const sensitiveFields = ['password', 'passwordhash', 'apikey', 'token', 'secret', 'key'];
     
     for (const [key, value] of Object.entries(obj)) {
       if (sensitiveFields.includes(key.toLowerCase())) {

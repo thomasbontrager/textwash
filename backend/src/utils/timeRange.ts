@@ -2,6 +2,8 @@
  * Utility functions for time range operations
  */
 
+export type TimeRange = '1h' | '24h' | '7d' | '30d';
+
 /**
  * Convert a time range string to a Date object
  * @param timeRange - Time range string: '1h', '24h', '7d', '30d'
@@ -20,6 +22,7 @@ export function getTimeRangeDate(timeRange: string): Date {
     case '30d':
       return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     default:
+      // Default to 24h for invalid inputs
       return new Date(now.getTime() - 24 * 60 * 60 * 1000);
   }
 }

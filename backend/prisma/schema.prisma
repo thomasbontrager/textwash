@@ -14,7 +14,7 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
-// Enums
+// Enum definitions
 enum RoleType {
   SUPER_ADMIN
   ADMIN

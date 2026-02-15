@@ -103,7 +103,7 @@ router.get('/errors', async (req: AuthRequest, res) => {
 router.get('/endpoints/top', async (req: AuthRequest, res) => {
   try {
     const timeRange = (req.query.timeRange as string) || '24h';
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     
     const since = getTimeRangeDate(timeRange);
     const endpoints = await getTopEndpoints(since, limit);
@@ -129,7 +129,7 @@ router.get('/endpoints/top', async (req: AuthRequest, res) => {
 router.get('/endpoints/slowest', async (req: AuthRequest, res) => {
   try {
     const timeRange = (req.query.timeRange as string) || '24h';
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     
     const since = getTimeRangeDate(timeRange);
     const endpoints = await getSlowestEndpoints(since, limit);
