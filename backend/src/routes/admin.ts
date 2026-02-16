@@ -4,7 +4,7 @@ import { authenticateToken, requireRole, requirePermission } from '../middleware
 import { reloadAgents, getAgentNames, getAllAgents } from '../services/agentRegistry';
 import { getRules, updateRules, clearRuleCache, getLatestRuleVersion } from '../services/ruleLoader';
 import { getPolicies, createPolicy, updatePolicy, deletePolicy } from '../services/policyService';
-import { PrismaClient, Role, Permission } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -15,7 +15,7 @@ router.use(authenticateToken);
 
 // GET /admin/agents - List all registered agents
 // Requires ADMIN or SUPER_ADMIN role
-router.get('/agents', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
+router.get('/agents', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const agents = getAllAgents();
     const agentList = agents.map(agent => ({
@@ -32,7 +32,7 @@ router.get('/agents', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: A
 
 // POST /admin/agents/reload - Trigger hot reload of agents
 // Requires MANAGE_FEATURE_FLAGS permission
-router.post('/agents/reload', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
+router.post('/agents/reload', requirePermission(['MANAGE_FEATURE_FLAGS']), async (req: AuthRequest, res) => {
   try {
     await reloadAgents();
     const agentNames = getAgentNames();
@@ -51,7 +51,7 @@ router.post('/agents/reload', requirePermission([Permission.MANAGE_FEATURE_FLAGS
 
 // GET /admin/rules/:agentName - Get rules for a specific agent
 // Requires ADMIN or SUPER_ADMIN role
-router.get('/rules/:agentName', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
+router.get('/rules/:agentName', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const rules = await getRules(agentName);
@@ -70,7 +70,7 @@ router.get('/rules/:agentName', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), asy
 
 // PUT /admin/rules/:agentName - Update rules for a specific agent
 // Requires MANAGE_FEATURE_FLAGS permission
-router.put('/rules/:agentName', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
+router.put('/rules/:agentName', requirePermission(['MANAGE_FEATURE_FLAGS']), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const { rules, description } = req.body;
@@ -96,7 +96,7 @@ router.put('/rules/:agentName', requirePermission([Permission.MANAGE_FEATURE_FLA
 
 // POST /admin/rules/:agentName/clear-cache - Clear cache for specific agent
 // Requires MANAGE_FEATURE_FLAGS permission
-router.post('/rules/:agentName/clear-cache', requirePermission([Permission.MANAGE_FEATURE_FLAGS]), async (req: AuthRequest, res) => {
+router.post('/rules/:agentName/clear-cache', requirePermission(['MANAGE_FEATURE_FLAGS']), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     clearRuleCache(agentName);
@@ -113,7 +113,7 @@ router.post('/rules/:agentName/clear-cache', requirePermission([Permission.MANAG
 
 // GET /admin/policies - List all policies
 // Requires ADMIN or SUPER_ADMIN role
-router.get('/policies', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
+router.get('/policies', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -143,7 +143,7 @@ router.get('/policies', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req:
 
 // POST /admin/policies - Create a new policy
 // Requires MANAGE_PLANS permission
-router.post('/policies', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
+router.post('/policies', requirePermission(['MANAGE_PLANS']), async (req: AuthRequest, res) => {
   try {
     const { organizationId, name, type, rules } = req.body;
     
@@ -165,7 +165,7 @@ router.post('/policies', requirePermission([Permission.MANAGE_PLANS]), async (re
 
 // PUT /admin/policies/:policyId - Update a policy
 // Requires MANAGE_PLANS permission
-router.put('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
+router.put('/policies/:policyId', requirePermission(['MANAGE_PLANS']), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     const { rules, enabled } = req.body;
@@ -184,7 +184,7 @@ router.put('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), 
 
 // DELETE /admin/policies/:policyId - Delete a policy
 // Requires MANAGE_PLANS permission
-router.delete('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]), async (req: AuthRequest, res) => {
+router.delete('/policies/:policyId', requirePermission(['MANAGE_PLANS']), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     
@@ -202,7 +202,7 @@ router.delete('/policies/:policyId', requirePermission([Permission.MANAGE_PLANS]
 
 // GET /admin/api-keys - List API keys
 // Requires ADMIN or SUPER_ADMIN role
-router.get('/api-keys', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req: AuthRequest, res) => {
+router.get('/api-keys', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -230,7 +230,7 @@ router.get('/api-keys', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req:
     });
     
     // Hide actual keys for security
-    const sanitizedKeys = apiKeys.map(k => ({
+    const sanitizedKeys = apiKeys.map((k: any) => ({
       ...k,
       key: `${k.key.substring(0, 8)}...${k.key.substring(k.key.length - 4)}`
     }));
@@ -244,7 +244,7 @@ router.get('/api-keys', requireRole([Role.ADMIN, Role.SUPER_ADMIN]), async (req:
 
 // POST /admin/api-keys - Create a new API key
 // Requires MANAGE_USERS permission
-router.post('/api-keys', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
+router.post('/api-keys', requirePermission(['MANAGE_USERS']), async (req: AuthRequest, res) => {
   try {
     const { userId, organizationId, name, rateLimit, enabledAgents } = req.body;
     
@@ -283,7 +283,7 @@ router.post('/api-keys', requirePermission([Permission.MANAGE_USERS]), async (re
 
 // PUT /admin/api-keys/:keyId - Update API key
 // Requires MANAGE_USERS permission
-router.put('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
+router.put('/api-keys/:keyId', requirePermission(['MANAGE_USERS']), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     const { enabled, rateLimit, enabledAgents } = req.body;
@@ -309,7 +309,7 @@ router.put('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), asy
 
 // DELETE /admin/api-keys/:keyId - Delete API key
 // Requires MANAGE_USERS permission
-router.delete('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), async (req: AuthRequest, res) => {
+router.delete('/api-keys/:keyId', requirePermission(['MANAGE_USERS']), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     
@@ -329,7 +329,7 @@ router.delete('/api-keys/:keyId', requirePermission([Permission.MANAGE_USERS]), 
 
 // GET /admin/usage - Get usage statistics
 // Requires VIEW_LOGS permission
-router.get('/usage', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+router.get('/usage', requirePermission(['VIEW_LOGS']), async (req: AuthRequest, res) => {
   try {
     const { organizationId, startDate, endDate } = req.query;
     
@@ -387,6 +387,13 @@ router.get('/usage', requirePermission([Permission.VIEW_LOGS]), async (req: Auth
   }
 });
 
+// GET /admin/users - List all users
+router.get('/users', async (req: AuthRequest, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        subscription: true
+      },
 // ===== FEATURE FLAG ROUTES =====
 
 // GET /admin/feature-flags - List all feature flags
@@ -398,6 +405,78 @@ router.get('/feature-flags', async (req: AuthRequest, res) => {
       }
     });
     
+    // Remove sensitive data
+    const sanitizedUsers = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      subscription: user.subscription,
+      createdAt: user.createdAt
+    }));
+    
+    res.json(sanitizedUsers);
+  } catch (error) {
+    console.error('List users error:', error);
+    res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+// POST /admin/users/:userId/grant-pro - Grant Pro access to user
+router.post('/users/:userId/grant-pro', async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get or create subscription
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId }
+    });
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'User subscription not found' });
+    }
+    
+    await prisma.subscription.update({
+      where: { userId },
+      data: {
+        plan: 'PRO',
+        status: 'ACTIVE',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Pro access granted'
+    });
+  } catch (error) {
+    console.error('Grant Pro error:', error);
+    res.status(500).json({ error: 'Failed to grant Pro access' });
+  }
+});
+
+// POST /admin/users/:userId/revoke-access - Revoke premium access
+router.post('/users/:userId/revoke-access', async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId }
+    });
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'User subscription not found' });
+    }
+    
+    await prisma.subscription.update({
+      where: { userId },
+      data: {
+        plan: 'FREE',
+        status: 'ACTIVE',
+        stripeSubscriptionId: null,
+        currentPeriodStart: null,
+        currentPeriodEnd: null
+      }
     res.json(flags);
   } catch (error) {
     console.error('List feature flags error:', error);
@@ -497,11 +576,179 @@ router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
     
     res.json({
       success: true,
+      message: 'Access revoked'
+    });
+  } catch (error) {
+    console.error('Revoke access error:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
+  }
+});
+
+// POST /admin/stripe-config - Save Stripe configuration
+router.post('/stripe-config', async (req: AuthRequest, res) => {
+  try {
+    const { publishableKey, secretKey, webhookSecret } = req.body;
+    
+    if (!publishableKey) {
+      return res.status(400).json({ error: 'Publishable key is required' });
+    }
+    
+    // Find or create admin profile for this admin user
+    const existingProfile = await prisma.adminProfile.findUnique({
+      where: { userId: req.user!.id }
+    });
+    
+    const updateData: any = {
+      stripePublishableKey: publishableKey
+    };
+    
+    if (secretKey) {
+      updateData.stripeSecretKey = secretKey;
+    }
+    
+    if (webhookSecret) {
+      updateData.stripeWebhookSecret = webhookSecret;
+    }
+    
+    if (existingProfile) {
+      await prisma.adminProfile.update({
+        where: { userId: req.user!.id },
+        data: updateData
+      });
+    } else {
+      await prisma.adminProfile.create({
+        data: {
+          userId: req.user!.id,
+          ...updateData
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Stripe configuration saved'
+    });
+  } catch (error) {
+    console.error('Save Stripe config error:', error);
+    res.status(500).json({ error: 'Failed to save Stripe configuration' });
       message: 'Feature flag deleted successfully'
     });
   } catch (error) {
     console.error('Delete feature flag error:', error);
     res.status(500).json({ error: 'Failed to delete feature flag' });
+  }
+});
+
+// ===== WEBHOOK MONITORING ROUTES =====
+
+// GET /admin/webhooks - List webhook events with filtering
+// Requires MANAGE_BILLING permission
+router.get('/webhooks', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
+  try {
+    const { eventType, status, limit = '100', offset = '0' } = req.query;
+    
+    // Validate and sanitize pagination parameters
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+    
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 1000) {
+      return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
+    }
+    
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      return res.status(400).json({ error: 'Invalid offset parameter. Must be a non-negative integer.' });
+    }
+    
+    const where: any = {};
+    
+    // Filter by event type if provided
+    if (eventType) {
+      where.eventType = eventType as string;
+    }
+    
+    // Filter by status if provided
+    if (status) {
+      where.status = status as string;
+    }
+    
+    // Get total count for pagination
+    const total = await prisma.webhookEvent.count({ where });
+    
+    // Get webhook events
+    const webhooks = await prisma.webhookEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: parsedLimit,
+      skip: parsedOffset
+    });
+    
+    res.json({
+      webhooks,
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset
+    });
+  } catch (error) {
+    console.error('List webhooks error:', error);
+    res.status(500).json({ error: 'Failed to list webhooks' });
+  }
+});
+
+// GET /admin/webhooks/:id - Get a specific webhook event
+// Requires MANAGE_BILLING permission
+router.get('/webhooks/:id', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const webhook = await prisma.webhookEvent.findUnique({
+      where: { id }
+    });
+    
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook event not found' });
+    }
+    
+    res.json(webhook);
+  } catch (error) {
+    console.error('Get webhook error:', error);
+    res.status(500).json({ error: 'Failed to get webhook' });
+  }
+});
+
+// POST /admin/webhooks/:id/retry - Retry a failed webhook
+// Requires MANAGE_BILLING permission
+router.post('/webhooks/:id/retry', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the webhook event
+    const webhook = await prisma.webhookEvent.findUnique({
+      where: { id }
+    });
+    
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook event not found' });
+    }
+    
+    // Reset the webhook status to pending for retry
+    await prisma.webhookEvent.update({
+      where: { id },
+      data: {
+        status: 'pending',
+        lastError: null,
+        attempts: webhook.attempts + 1
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Webhook event queued for retry'
+    });
+  } catch (error) {
+    console.error('Retry webhook error:', error);
+    res.status(500).json({ error: 'Failed to retry webhook' });
   }
 });
 

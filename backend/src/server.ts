@@ -4,16 +4,22 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { globalLimiter } from './middleware/rateLimit';
 import { extractSubdomain, requireSubdomain, getSubdomainUrl } from './middleware/subdomain';
+import { apiLogger } from './middleware/apiLogger';
 import { startAgentHotReload } from './services/agentRegistry';
+import { AIInitializer } from './ai/core/ai-initializer';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
+import subscriptionRoutes from './routes/subscriptions';
+import billingRoutes from './routes/billing';
 import stripeRoutes from './routes/stripe';
 import billingRoutes from './routes/billing';
 import subscriptionsRoutes from './routes/subscriptions';
 import pricingPlansRoutes from './routes/pricing-plans';
 import featureExamplesRoutes from './routes/featureExamples';
 import emailTemplatesRoutes from './routes/email-templates';
+import metricsRoutes from './routes/metrics';
+import aiRoutes from './routes/ai';
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +73,9 @@ app.use(express.urlencoded({ extended: true }));
 // Apply global rate limiter
 app.use(globalLimiter);
 
+// Apply API logging middleware (after body parsing, before routes)
+app.use(apiLogger);
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -75,12 +84,17 @@ app.get('/health', (req, res) => {
 // Subdomain-based routing
 // API Routes - available on api.textwash.app (and root for backwards compatibility)
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
 app.use('/api/admin/pricing-plans', requireSubdomain(['admin', 'api', '']), pricingPlansRoutes);
 app.use('/api/admin/email-templates', requireSubdomain(['admin', 'api', '']), emailTemplatesRoutes);
+app.use('/api/admin/metrics', requireSubdomain(['admin', 'api', '']), metricsRoutes);
 app.use('/api/features', featureExamplesRoutes);  // Feature flag examples
+app.use('/api/ai', aiRoutes);  // AI and tool endpoints
 app.use('/api', apiRoutes);
 
 // 404 handler
@@ -100,6 +114,9 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     console.log('Database connected');
+    
+    // Initialize AI system with autorun
+    await AIInitializer.initialize();
     
     // Start agent hot-reload in development
     if (process.env.NODE_ENV === 'development') {

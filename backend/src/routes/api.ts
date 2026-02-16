@@ -28,12 +28,13 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
     let result = text;
     
     // Get user's subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: req.user!.id }
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: req.user!.id, status: 'ACTIVE' },
+      include: { plan: true }
     });
     
     // Create system context
-    const llmEnabled = process.env.LLM_ENABLED === 'true' && subscription?.plan === 'PRO';
+    const llmEnabled = process.env.LLM_ENABLED === 'true' && subscription?.plan.name === 'PRO';
     const llmService = llmEnabled && process.env.LLM_API_KEY
       ? new LLMServiceImpl({
           apiKey: process.env.LLM_API_KEY!,
@@ -54,7 +55,7 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
       llm: llmService,
       userId: req.user!.id,
       organizationId: req.user!.organizationId,
-      plan: subscription?.plan || 'FREE'
+      plan: subscription?.plan.name || 'FREE'
     };
     
     // Get agents based on mode
@@ -144,11 +145,12 @@ router.post('/v1/rewrite', async (req: AuthRequest, res) => {
     const startTime = Date.now();
     
     // Get user's subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: req.user!.id }
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: req.user!.id, status: 'ACTIVE' },
+      include: { plan: true }
     });
     
-    if (subscription?.plan === 'FREE') {
+    if (subscription?.plan.name === 'FREE') {
       return res.status(403).json({
         error: 'Rewrite feature requires PRO plan',
         upgrade: '/pricing'
@@ -177,7 +179,7 @@ router.post('/v1/rewrite', async (req: AuthRequest, res) => {
       llm: llmService,
       userId: req.user!.id,
       organizationId: req.user!.organizationId,
-      plan: subscription?.plan || 'FREE'
+      plan: subscription?.plan.name || 'FREE'
     };
     
     // Select agent based on mode
