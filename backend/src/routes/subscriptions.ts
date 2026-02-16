@@ -14,8 +14,9 @@ const DEFAULT_BASE_DOMAIN = 'textwash.app';
 // GET /subscriptions/plan - Get user's subscription details
 router.get('/plan', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: req.user!.id }
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: req.user!.id, status: 'ACTIVE' },
+      include: { plan: true }
     });
 
     if (!subscription) {
@@ -49,7 +50,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
     // Get user
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      include: { subscription: true }
+      include: { subscriptions: true }
     });
 
     if (!user) {
@@ -123,15 +124,16 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
 // POST /subscriptions/cancel-subscription - Cancel user's subscription
 router.post('/cancel-subscription', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: req.user!.id }
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: req.user!.id, status: 'ACTIVE' },
+      include: { plan: true }
     });
 
     if (!subscription) {
       return res.status(404).json({ error: 'Subscription not found' });
     }
 
-    if (subscription.plan === 'FREE') {
+    if (subscription.plan.name === 'FREE') {
       return res.status(400).json({ error: 'No active subscription to cancel' });
     }
 

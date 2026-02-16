@@ -230,7 +230,7 @@ router.get('/api-keys', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthR
     });
     
     // Hide actual keys for security
-    const sanitizedKeys = apiKeys.map(k => ({
+    const sanitizedKeys = apiKeys.map((k: any) => ({
       ...k,
       key: `${k.key.substring(0, 8)}...${k.key.substring(k.key.length - 4)}`
     }));
@@ -509,7 +509,7 @@ router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
 
 // GET /admin/webhooks - List webhook events with filtering
 // Requires MANAGE_BILLING permission
-router.get('/webhooks', requirePermission([Permission.MANAGE_BILLING]), async (req: AuthRequest, res) => {
+router.get('/webhooks', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
   try {
     const { eventType, status, limit = '100', offset = '0' } = req.query;
     
@@ -564,7 +564,7 @@ router.get('/webhooks', requirePermission([Permission.MANAGE_BILLING]), async (r
 
 // GET /admin/webhooks/:id - Get a specific webhook event
 // Requires MANAGE_BILLING permission
-router.get('/webhooks/:id', requirePermission([Permission.MANAGE_BILLING]), async (req: AuthRequest, res) => {
+router.get('/webhooks/:id', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     
@@ -585,7 +585,7 @@ router.get('/webhooks/:id', requirePermission([Permission.MANAGE_BILLING]), asyn
 
 // POST /admin/webhooks/:id/retry - Retry a failed webhook
 // Requires MANAGE_BILLING permission
-router.post('/webhooks/:id/retry', requirePermission([Permission.MANAGE_BILLING]), async (req: AuthRequest, res) => {
+router.post('/webhooks/:id/retry', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     

@@ -6,6 +6,7 @@ import { globalLimiter } from './middleware/rateLimit';
 import { extractSubdomain, requireSubdomain, getSubdomainUrl } from './middleware/subdomain';
 import { apiLogger } from './middleware/apiLogger';
 import { startAgentHotReload } from './services/agentRegistry';
+import { initializeTools } from './ai/core/tool-initializer';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
@@ -15,6 +16,7 @@ import subscriptionsRoutes from './routes/subscriptions';
 import pricingPlansRoutes from './routes/pricing-plans';
 import featureExamplesRoutes from './routes/featureExamples';
 import metricsRoutes from './routes/metrics';
+import aiRoutes from './routes/ai';
 
 // Load environment variables
 dotenv.config();
@@ -85,6 +87,7 @@ app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
 app.use('/api/admin/pricing-plans', requireSubdomain(['admin', 'api', '']), pricingPlansRoutes);
 app.use('/api/admin/metrics', requireSubdomain(['admin', 'api', '']), metricsRoutes);
 app.use('/api/features', featureExamplesRoutes);  // Feature flag examples
+app.use('/api/ai', aiRoutes);  // AI and tool endpoints
 app.use('/api', apiRoutes);
 
 // 404 handler
@@ -104,6 +107,11 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     console.log('Database connected');
+    
+    // Initialize AI tools
+    if (process.env.FEATURE_AI_CORE === 'true' || process.env.FEATURE_AGENT_SYSTEM === 'true') {
+      initializeTools();
+    }
     
     // Start agent hot-reload in development
     if (process.env.NODE_ENV === 'development') {

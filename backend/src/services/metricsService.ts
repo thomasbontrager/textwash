@@ -256,7 +256,7 @@ export async function getTopEndpoints(since: Date, limit: number = 10) {
     take: limit
   });
   
-  return logs.map((log) => ({
+  return logs.map((log: any) => ({
     endpoint: log.endpoint,
     count: log._count.endpoint
   }));
@@ -287,7 +287,7 @@ export async function getSlowestEndpoints(since: Date, limit: number = 10) {
     take: limit
   });
   
-  return logs.map((log) => ({
+  return logs.map((log: any) => ({
     endpoint: log.endpoint,
     avgResponseTime: Math.round(log._avg.responseTime || 0),
     count: log._count.endpoint
