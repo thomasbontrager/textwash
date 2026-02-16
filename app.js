@@ -1,5 +1,5 @@
 // CONFIG
-const API_URL = 'http://localhost:3000/api';
+const API_URL = SUBDOMAIN_CONFIG.apiUrl;
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Sz8jsRlPGLngNpAf33rUQCQmgqhhI8cU46n6Y9fJHTAvD5ugQ2s2n4WSPgePtigmnnWncSkO24aymeWSO3RCH6O00wleAK6c3';
 let stripePromise = null;
 try {

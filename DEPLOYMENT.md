@@ -13,10 +13,10 @@
 
 ```bash
 # Create database
-createdb cleantext
+createdb textwash
 
 # Connection string
-postgresql://user:password@localhost:5432/cleantext
+postgresql://user:password@localhost:5432/textwash
 ```
 
 ### Option B: Supabase (Recommended)
@@ -114,13 +114,13 @@ Add `_redirects` file:
 ### 2. Create Products (Live)
 
 In Stripe Dashboard:
-- Create CleanText Starter ($29/year, 14-day trial)
-- Create CleanText Pro ($99/year, 14-day trial)
+- Create TextWash Starter ($29/year, 14-day trial)
+- Create TextWash Pro ($99/year, 14-day trial)
 
 ### 3. Setup Webhooks
 
 Add webhook endpoint:
-- URL: `https://yourdomain.com/api/webhooks/webhook`
+- URL: `https://yourdomain.com/api/stripe/webhook`
 - Events:
   - `customer.subscription.created`
   - `customer.subscription.updated`
@@ -152,7 +152,7 @@ Create admin user:
 INSERT INTO "User" (id, email, "passwordHash", role, "createdAt", "updatedAt")
 VALUES (
   'unique-id-here',
-  'admin@cleantext.app',
+  'admin@textwash.app',
   '$2a$12$...',  -- bcrypt hash of password
   'ADMIN',
   NOW(),
@@ -164,7 +164,7 @@ VALUES (
 
 After initial user signup, manually update role in database:
 ```sql
-UPDATE "User" SET role='ADMIN' WHERE email='admin@cleantext.app';
+UPDATE "User" SET role='ADMIN' WHERE email='admin@textwash.app';
 ```
 
 ## Step 7: DNS Configuration
@@ -177,8 +177,8 @@ Point domain to deployment:
 
 ### Example DNS Records
 ```
-api.cleantext.app  CNAME  vercel-backend.vercel.app
-cleantext.app      CNAME  vercel-frontend.vercel.app
+api.textwash.app  CNAME  vercel-backend.vercel.app
+textwash.app      CNAME  vercel-frontend.vercel.app
 ```
 
 ## Step 8: SSL/HTTPS

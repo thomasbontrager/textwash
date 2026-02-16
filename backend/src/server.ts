@@ -3,12 +3,22 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { globalLimiter } from './middleware/rateLimit';
+import { extractSubdomain, requireSubdomain, getSubdomainUrl } from './middleware/subdomain';
+import { apiLogger } from './middleware/apiLogger';
 import { startAgentHotReload } from './services/agentRegistry';
+import { initializeTools } from './ai/core/tool-initializer';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
 import subscriptionRoutes from './routes/subscriptions';
 import billingRoutes from './routes/billing';
+import stripeRoutes from './routes/stripe';
+import billingRoutes from './routes/billing';
+import subscriptionsRoutes from './routes/subscriptions';
+import pricingPlansRoutes from './routes/pricing-plans';
+import featureExamplesRoutes from './routes/featureExamples';
+import metricsRoutes from './routes/metrics';
+import aiRoutes from './routes/ai';
 
 // Load environment variables
 dotenv.config();
@@ -17,11 +27,44 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Extract subdomain before other middleware
+app.use(extractSubdomain);
+
+// Middleware - CORS for multiple subdomains
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3001',
+  getSubdomainUrl(''),        // textwash.app
+  getSubdomainUrl('api'),     // api.textwash.app
+  getSubdomainUrl('billing'), // billing.textwash.app
+  getSubdomainUrl('admin'),   // admin.textwash.app
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      return callback(null, true);
+    }
+    
+    // Allow any subdomain of textwash.app in production
+    if (process.env.NODE_ENV === 'production' && origin.endsWith('.textwash.app')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
+
+// Stripe webhook route - must be before express.json() middleware
+// to get raw body for signature verification
+app.use('/api/stripe', stripeRoutes);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -29,16 +72,27 @@ app.use(express.urlencoded({ extended: true }));
 // Apply global rate limiter
 app.use(globalLimiter);
 
+// Apply API logging middleware (after body parsing, before routes)
+app.use(apiLogger);
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
+// Subdomain-based routing
+// API Routes - available on api.textwash.app (and root for backwards compatibility)
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
+app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
+app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
+app.use('/api/admin/pricing-plans', requireSubdomain(['admin', 'api', '']), pricingPlansRoutes);
+app.use('/api/admin/metrics', requireSubdomain(['admin', 'api', '']), metricsRoutes);
+app.use('/api/features', featureExamplesRoutes);  // Feature flag examples
+app.use('/api/ai', aiRoutes);  // AI and tool endpoints
 app.use('/api', apiRoutes);
 
 // 404 handler
@@ -59,6 +113,11 @@ async function startServer() {
     await prisma.$connect();
     console.log('Database connected');
     
+    // Initialize AI tools
+    if (process.env.FEATURE_AI_CORE === 'true' || process.env.FEATURE_AGENT_SYSTEM === 'true') {
+      initializeTools();
+    }
+    
     // Start agent hot-reload in development
     if (process.env.NODE_ENV === 'development') {
       console.log('Starting agent hot-reload...');
@@ -74,13 +133,20 @@ async function startServer() {
 ║   Server running on port ${PORT}                           ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}                         ║
 ║                                                            ║
-║   Public API:                                              ║
+║   Subdomain Structure:                                     ║
+║   - textwash.app       → Main app (landing, auth, app)    ║
+║   - api.textwash.app   → API endpoints, webhooks          ║
+║   - billing.textwash.app → Stripe portal return URL       ║
+║   - admin.textwash.app → Admin dashboard                  ║
+║                                                            ║
+║   Public API (api.textwash.app):                          ║
 ║   - POST /api/v1/clean                                     ║
 ║   - POST /api/v1/rewrite                                   ║
 ║   - POST /api/v1/analyze                                   ║
 ║   - POST /api/v1/moderate                                  ║
+║   - POST /api/stripe/webhook                               ║
 ║                                                            ║
-║   Admin API:                                               ║
+║   Admin API (admin.textwash.app):                         ║
 ║   - POST /api/admin/agents/reload                          ║
 ║   - PUT  /api/admin/rules/:agentName                       ║
 ║   - POST /api/admin/policies                               ║

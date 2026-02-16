@@ -68,7 +68,7 @@ This will:
 
 **Current DATABASE_URL:**
 ```
-postgresql://user:password@localhost:5432/cleantext?schema=public
+postgresql://user:password@localhost:5432/textwash?schema=public
 ```
 
 ⚠️ **You need to:**
@@ -100,7 +100,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = 'admin@cleantext.com';
+  const email = 'admin@textwash.app';
   const password = 'YourSecurePassword123!';
   
   const passwordHash = await bcrypt.hash(password, 12);
@@ -153,7 +153,7 @@ Run with: `npx tsx backend/scripts/create-admin.ts`
 
 **Status:** ✅ CONFIGURED WITH CUSTOMER PORTAL
 
-Your webhook endpoint: `http://localhost:3000/api/webhooks/webhook`
+Your webhook endpoint: `http://localhost:3000/api/stripe/webhook`
 
 **Stripe Customer Portal is now integrated:**
 - ✅ Backend route created: `/api/billing/create-portal-session`
@@ -182,7 +182,7 @@ Your webhook endpoint: `http://localhost:3000/api/webhooks/webhook`
 **For local testing:**
 1. Install Stripe CLI: `scoop install stripe` or download from Stripe
 2. Run: `stripe login`
-3. Forward webhooks: `stripe listen --forward-to localhost:3000/api/webhooks/webhook`
+3. Forward webhooks: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
 4. Copy the webhook signing secret and update `STRIPE_WEBHOOK_SECRET` in `.env`
 
 **Webhook events configured:**

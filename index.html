@@ -18,6 +18,9 @@
   
   <!-- Stripe.js -->
   <script src="https://js.stripe.com/v3/"></script>
+  
+  <!-- Subdomain configuration -->
+  <script src="subdomain-config.js"></script>
 </head>
 <body>
 
@@ -299,7 +302,10 @@
   <div id="adminPage" class="page hidden">
     <header class="admin-header">
       <h1>Admin Control Panel</h1>
-      <button class="back-btn" onclick="handleLogout()">Sign Out</button>
+      <div style="display: flex; gap: 1rem;">
+        <a href="admin-dashboard.html" class="btn btn-accent">New Dashboard</a>
+        <button class="back-btn" onclick="handleLogout()">Sign Out</button>
+      </div>
     </header>
 
     <div class="admin-container">

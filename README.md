@@ -14,6 +14,17 @@ This platform now includes an **advanced agent system** with:
 
 ## 🚀 Architecture
 
+### Subdomain Structure
+
+TextWash uses a professional multi-subdomain architecture:
+
+- **`textwash.app`** (Root) - Landing page, login/signup, pricing, main app
+- **`api.textwash.app`** - API endpoints, Stripe webhooks, AI requests, auth
+- **`billing.textwash.app`** - Stripe Customer Portal return URL, subscription management
+- **`admin.textwash.app`** - Admin dashboard, user management, metrics
+
+See **[SUBDOMAIN_GUIDE.md](./SUBDOMAIN_GUIDE.md)** for complete setup instructions.
+
 ### Frontend (Static HTML/CSS/JS)
 - User interface with dark SaaS theme
 - Client-side text cleaning
@@ -33,10 +44,11 @@ This platform now includes an **advanced agent system** with:
 
 ### Frontend Only (No Backend)
 ```bash
-# Serve static files
-python3 -m http.server 3001
-# or
-npx http-server -p 3001
+# Install dependencies (first time only)
+npm install
+
+# Start dev server
+npm run dev
 
 # Open http://localhost:3001
 ```
@@ -50,13 +62,16 @@ npm run dev
 
 # 2. In another terminal, serve frontend
 cd ..
-python3 -m http.server 3001
+npm install  # First time only
+npm run dev
 
 # Frontend: http://localhost:3001
 # Backend API: http://localhost:3000
 ```
 
 See **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** for detailed setup.
+
+**Having trouble with port 3001?** See **[PORT_3001_GUIDE.md](./PORT_3001_GUIDE.md)** for troubleshooting.
 
 ## 🚀 Features
 
@@ -90,9 +105,12 @@ See **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** for detailed setup.
 ```
 textwash/
 ├── index.html              # Multi-page SPA
+├── billing.html            # Billing portal page
 ├── style.css               # Dark SaaS theme
 ├── app.js                  # Frontend logic
+├── subdomain-config.js     # Subdomain-aware configuration
 ├── assets/                 # Logo, favicon
+├── SUBDOMAIN_GUIDE.md      # Subdomain setup guide
 ├── INTEGRATION_GUIDE.md    # Full integration guide
 └── backend/
     ├── README.md           # Backend quick start
@@ -104,10 +122,13 @@ textwash/
     │   ├── types/          # TypeScript definitions
     │   ├── middleware/
     │   │   ├── auth.ts     # JWT & API key auth
+    │   │   ├── subdomain.ts  # Subdomain routing
     │   │   └── rateLimit.ts  # Rate limiting
     │   ├── routes/
     │   │   ├── auth.ts     # Authentication
     │   │   ├── admin.ts    # Admin management
+    │   │   ├── billing.ts  # Stripe portal
+    │   │   ├── stripe.ts   # Stripe webhooks
     │   │   └── api.ts      # Public B2B API
     │   ├── services/
     │   │   ├── ruleLoader.ts      # Self-updating rules
@@ -187,8 +208,6 @@ The script will:
 
 ### Option 2: Manual Setup
 
-### Option 2: Manual Setup
-
 ```bash
 cd backend
 
@@ -258,7 +277,7 @@ Create a user with ADMIN role:
 INSERT INTO "User" (id, email, "passwordHash", role, "createdAt", "updatedAt")
 VALUES (
   'unique-uuid',
-  'admin@cleantext.app',
+  'admin@textwash.app',
   '$2a$12$...hash',
   'ADMIN',
   NOW(),
@@ -275,12 +294,21 @@ Then login to admin panel and add Stripe keys:
 
 In Stripe Dashboard:
 - Go to Webhooks
-- Add endpoint: `https://yourdomain.com/api/webhooks/webhook`
+- Add endpoint: `https://api.textwash.app/api/stripe/webhook`
 - Subscribe to:
   - `customer.subscription.created`
   - `customer.subscription.updated`
   - `customer.subscription.deleted`
   - `invoice.payment_failed`
+
+### 5. Configure Customer Portal
+
+In Stripe Dashboard → Settings → Billing → Customer Portal:
+- Set return URL: `https://billing.textwash.app`
+- Enable features:
+  - Update payment method
+  - Cancel subscription
+  - View invoices
 
 ## 👤 Admin Panel
 
@@ -336,6 +364,8 @@ See **[backend/API_EXAMPLES.md](./backend/API_EXAMPLES.md)** for complete exampl
 
 ## 📚 Documentation
 
+- **[AI_CAPABILITIES.md](./AI_CAPABILITIES.md)** - Comprehensive AI capabilities guide
+- **[SUBDOMAIN_GUIDE.md](./SUBDOMAIN_GUIDE.md)** - Subdomain architecture setup
 - **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** - Full integration guide
 - **[backend/README.md](./backend/README.md)** - Backend quick start
 - **[backend/IMPLEMENTATION_GUIDE.md](./backend/IMPLEMENTATION_GUIDE.md)** - Detailed architecture
