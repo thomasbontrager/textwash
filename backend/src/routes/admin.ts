@@ -387,6 +387,13 @@ router.get('/usage', requirePermission(['VIEW_LOGS']), async (req: AuthRequest, 
   }
 });
 
+// GET /admin/users - List all users
+router.get('/users', async (req: AuthRequest, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        subscription: true
+      },
 // ===== FEATURE FLAG ROUTES =====
 
 // GET /admin/feature-flags - List all feature flags
@@ -398,6 +405,78 @@ router.get('/feature-flags', async (req: AuthRequest, res) => {
       }
     });
     
+    // Remove sensitive data
+    const sanitizedUsers = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      subscription: user.subscription,
+      createdAt: user.createdAt
+    }));
+    
+    res.json(sanitizedUsers);
+  } catch (error) {
+    console.error('List users error:', error);
+    res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+// POST /admin/users/:userId/grant-pro - Grant Pro access to user
+router.post('/users/:userId/grant-pro', async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get or create subscription
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId }
+    });
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'User subscription not found' });
+    }
+    
+    await prisma.subscription.update({
+      where: { userId },
+      data: {
+        plan: 'PRO',
+        status: 'ACTIVE',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Pro access granted'
+    });
+  } catch (error) {
+    console.error('Grant Pro error:', error);
+    res.status(500).json({ error: 'Failed to grant Pro access' });
+  }
+});
+
+// POST /admin/users/:userId/revoke-access - Revoke premium access
+router.post('/users/:userId/revoke-access', async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId }
+    });
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'User subscription not found' });
+    }
+    
+    await prisma.subscription.update({
+      where: { userId },
+      data: {
+        plan: 'FREE',
+        status: 'ACTIVE',
+        stripeSubscriptionId: null,
+        currentPeriodStart: null,
+        currentPeriodEnd: null
+      }
     res.json(flags);
   } catch (error) {
     console.error('List feature flags error:', error);
@@ -497,6 +576,61 @@ router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
     
     res.json({
       success: true,
+      message: 'Access revoked'
+    });
+  } catch (error) {
+    console.error('Revoke access error:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
+  }
+});
+
+// POST /admin/stripe-config - Save Stripe configuration
+router.post('/stripe-config', async (req: AuthRequest, res) => {
+  try {
+    const { publishableKey, secretKey, webhookSecret } = req.body;
+    
+    if (!publishableKey) {
+      return res.status(400).json({ error: 'Publishable key is required' });
+    }
+    
+    // Find or create admin profile for this admin user
+    const existingProfile = await prisma.adminProfile.findUnique({
+      where: { userId: req.user!.id }
+    });
+    
+    const updateData: any = {
+      stripePublishableKey: publishableKey
+    };
+    
+    if (secretKey) {
+      updateData.stripeSecretKey = secretKey;
+    }
+    
+    if (webhookSecret) {
+      updateData.stripeWebhookSecret = webhookSecret;
+    }
+    
+    if (existingProfile) {
+      await prisma.adminProfile.update({
+        where: { userId: req.user!.id },
+        data: updateData
+      });
+    } else {
+      await prisma.adminProfile.create({
+        data: {
+          userId: req.user!.id,
+          ...updateData
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Stripe configuration saved'
+    });
+  } catch (error) {
+    console.error('Save Stripe config error:', error);
+    res.status(500).json({ error: 'Failed to save Stripe configuration' });
       message: 'Feature flag deleted successfully'
     });
   } catch (error) {

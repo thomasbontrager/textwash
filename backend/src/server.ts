@@ -10,6 +10,8 @@ import { initializeTools } from './ai/core/tool-initializer';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
+import subscriptionRoutes from './routes/subscriptions';
+import billingRoutes from './routes/billing';
 import stripeRoutes from './routes/stripe';
 import billingRoutes from './routes/billing';
 import subscriptionsRoutes from './routes/subscriptions';
@@ -81,6 +83,9 @@ app.get('/health', (req, res) => {
 // Subdomain-based routing
 // API Routes - available on api.textwash.app (and root for backwards compatibility)
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
