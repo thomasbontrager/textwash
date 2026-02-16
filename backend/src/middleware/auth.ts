@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../types';
-import { PrismaClient, Role, Permission } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -132,13 +132,13 @@ export function requirePlan(allowedPlans: string[]) {
  * Middleware to require specific role(s)
  * Usage: requireRole(['ADMIN', 'SUPER_ADMIN'])
  */
-export function requireRole(allowedRoles: Role[]) {
+export function requireRole(allowedRoles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     
-    if (!allowedRoles.includes(req.user.role as Role)) {
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         error: 'Insufficient permissions',
         required: allowedRoles,
@@ -152,38 +152,52 @@ export function requireRole(allowedRoles: Role[]) {
 
 /**
  * Middleware to require specific permission(s)
- * Checks if user's role has the required permission(s)
+ * Checks if user has the required permission(s) through their roles
  * Usage: requirePermission(['MANAGE_USERS', 'VIEW_LOGS'])
  */
-export function requirePermission(requiredPermissions: Permission[]) {
+export function requirePermission(requiredPermissions: string[]) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     
     try {
-      // Get all permissions for the user's role
-      const rolePermissions = await prisma.rolePermission.findMany({
+      // Get all roles for the user
+      const userRoles = await prisma.userRole.findMany({
         where: {
-          role: req.user.role as Role
+          userId: req.user.id
         },
-        select: {
-          permission: true
+        include: {
+          role: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          }
         }
       });
       
-      const userPermissions = rolePermissions.map(rp => rp.permission);
+      // Collect all permissions from all user's roles
+      const userPermissions = new Set<string>();
+      for (const userRole of userRoles) {
+        for (const rolePermission of userRole.role.permissions) {
+          userPermissions.add(rolePermission.permission.name);
+        }
+      }
       
       // Check if user has all required permissions
       const hasAllPermissions = requiredPermissions.every(
-        permission => userPermissions.includes(permission)
+        permission => userPermissions.has(permission)
       );
       
       if (!hasAllPermissions) {
         return res.status(403).json({
           error: 'Insufficient permissions',
           required: requiredPermissions,
-          userPermissions
+          userPermissions: Array.from(userPermissions)
         });
       }
       

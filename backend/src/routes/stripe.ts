@@ -1,6 +1,6 @@
 import express from 'express';
 import Stripe from 'stripe';
-import { PrismaClient, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -79,20 +79,20 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
           // Determine plan from price ID
           const priceId = subscription.items.data[0]?.price.id;
-          let plan: SubscriptionPlan = SubscriptionPlan.FREE;
+          let plan = 'FREE';
           
           if (priceId === process.env.STRIPE_STARTER_PRICE_ID) {
-            plan = SubscriptionPlan.STARTER;
+            plan = 'STARTER';
           } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
-            plan = SubscriptionPlan.PRO;
+            plan = 'PRO';
           }
 
           // Determine subscription status
-          const status = subscription.status === 'active' ? SubscriptionStatus.ACTIVE :
-                        subscription.status === 'canceled' ? SubscriptionStatus.CANCELED :
-                        subscription.status === 'past_due' ? SubscriptionStatus.PAST_DUE :
-                        subscription.status === 'trialing' ? SubscriptionStatus.TRIALING :
-                        SubscriptionStatus.ACTIVE;
+          const status = subscription.status === 'active' ? 'ACTIVE' :
+                        subscription.status === 'canceled' ? 'CANCELED' :
+                        subscription.status === 'past_due' ? 'PAST_DUE' :
+                        subscription.status === 'trialing' ? 'TRIALING' :
+                        'ACTIVE';
 
           // Update or create subscription
           await prisma.subscription.upsert({
@@ -135,7 +135,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           await prisma.subscription.updateMany({
             where: { userId: user.id },
             data: {
-              status: SubscriptionStatus.ACTIVE
+              status: 'ACTIVE'
             }
           });
 
@@ -161,20 +161,20 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
         // Determine plan from price ID
         const priceId = subscription.items.data[0]?.price.id;
-        let plan: SubscriptionPlan = SubscriptionPlan.FREE;
+        let plan = 'FREE';
         
         if (priceId === process.env.STRIPE_STARTER_PRICE_ID) {
-          plan = SubscriptionPlan.STARTER;
+          plan = 'STARTER';
         } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
-          plan = SubscriptionPlan.PRO;
+          plan = 'PRO';
         }
 
         // Determine subscription status
-        const status = subscription.status === 'active' ? SubscriptionStatus.ACTIVE :
-                      subscription.status === 'canceled' ? SubscriptionStatus.CANCELED :
-                      subscription.status === 'past_due' ? SubscriptionStatus.PAST_DUE :
-                      subscription.status === 'trialing' ? SubscriptionStatus.TRIALING :
-                      SubscriptionStatus.ACTIVE;
+        const status = subscription.status === 'active' ? 'ACTIVE' :
+                      subscription.status === 'canceled' ? 'CANCELED' :
+                      subscription.status === 'past_due' ? 'PAST_DUE' :
+                      subscription.status === 'trialing' ? 'TRIALING' :
+                      'ACTIVE';
 
         // Update or create subscription
         await prisma.subscription.upsert({
@@ -220,8 +220,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         await prisma.subscription.update({
           where: { userId: user.id },
           data: {
-            plan: SubscriptionPlan.FREE,
-            status: SubscriptionStatus.CANCELED,
+            plan: 'FREE',
+            status: 'CANCELED',
             stripeSubscriptionId: null,
             currentPeriodEnd: null
           }
@@ -245,7 +245,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           await prisma.subscription.updateMany({
             where: { userId: user.id },
             data: {
-              status: SubscriptionStatus.PAST_DUE
+              status: 'PAST_DUE'
             }
           });
 
