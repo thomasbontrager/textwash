@@ -220,21 +220,43 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
-        const plan = session.metadata?.plan as string;
+        const planName = session.metadata?.plan as string;
         
-        if (userId && plan) {
-          await prisma.subscription.update({
-            where: { userId },
-            data: {
-              plan: plan as any,
-              status: 'ACTIVE',
-              stripeSubscriptionId: session.subscription as string,
-              stripeCustomerId: session.customer as string,
-              trialEndsAt: session.subscription ? undefined : null,
-              currentPeriodStart: new Date(),
-              currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        if (userId && planName) {
+          const plan = await prisma.plan.findFirst({ where: { name: planName } });
+          if (plan) {
+            const existingSub = await prisma.subscription.findFirst({
+              where: { userId, status: 'ACTIVE' }
+            });
+            
+            if (existingSub) {
+              await prisma.subscription.update({
+                where: { id: existingSub.id },
+                data: {
+                  planId: plan.id,
+                  status: 'ACTIVE',
+                  stripeSubscriptionId: session.subscription as string,
+                  stripeCustomerId: session.customer as string,
+                  trialEndsAt: session.subscription ? undefined : null,
+                  currentPeriodStart: new Date(),
+                  currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+                }
+              });
+            } else {
+              await prisma.subscription.create({
+                data: {
+                  userId,
+                  planId: plan.id,
+                  status: 'ACTIVE',
+                  stripeSubscriptionId: session.subscription as string,
+                  stripeCustomerId: session.customer as string,
+                  trialEndsAt: session.subscription ? undefined : null,
+                  currentPeriodStart: new Date(),
+                  currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+                }
+              });
             }
-          });
+          }
         }
         break;
         
@@ -243,17 +265,23 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const subUserId = subscription.metadata?.userId;
         
         if (subUserId) {
-          await prisma.subscription.update({
-            where: { userId: subUserId },
-            data: {
-              status: subscription.status === 'active' ? 'ACTIVE' : 
-                     subscription.status === 'canceled' ? 'CANCELED' :
-                     subscription.status === 'past_due' ? 'PAST_DUE' :
-                     subscription.status === 'trialing' ? 'TRIALING' : 'ACTIVE',
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-            }
+          const existingSub = await prisma.subscription.findFirst({
+            where: { userId: subUserId, status: 'ACTIVE' }
           });
+          
+          if (existingSub) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                status: subscription.status === 'active' ? 'ACTIVE' : 
+                       subscription.status === 'canceled' ? 'CANCELED' :
+                       subscription.status === 'past_due' ? 'PAST_DUE' :
+                       subscription.status === 'trialing' ? 'TRIALING' : 'ACTIVE',
+                currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+              }
+            });
+          }
         }
         break;
         
@@ -262,14 +290,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const deletedUserId = deletedSub.metadata?.userId;
         
         if (deletedUserId) {
-          await prisma.subscription.update({
-            where: { userId: deletedUserId },
-            data: {
-              plan: 'FREE',
-              status: 'CANCELED',
-              stripeSubscriptionId: null
-            }
+          const freePlan = await prisma.plan.findFirst({ where: { name: 'FREE' } });
+          const existingSub = await prisma.subscription.findFirst({
+            where: { userId: deletedUserId, status: 'ACTIVE' }
           });
+          
+          if (existingSub && freePlan) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                planId: freePlan.id,
+                status: 'CANCELED',
+                stripeSubscriptionId: null
+              }
+            });
+          }
         }
         break;
     }

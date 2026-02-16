@@ -392,7 +392,7 @@ router.get('/users', async (req: AuthRequest, res) => {
   try {
     const users = await prisma.user.findMany({
       include: {
-        subscription: true
+        subscriptions: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -404,7 +404,7 @@ router.get('/users', async (req: AuthRequest, res) => {
       id: user.id,
       email: user.email,
       role: user.role,
-      subscription: user.subscription,
+      subscriptions: user.subscriptions,
       createdAt: user.createdAt
     }));
     
@@ -438,24 +438,43 @@ router.post('/users/:userId/grant-pro', async (req: AuthRequest, res) => {
   try {
     const { userId } = req.params;
     
-    // Get or create subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId }
+    // Get PRO plan
+    const proPlan = await prisma.plan.findFirst({
+      where: { name: 'PRO' }
     });
     
-    if (!subscription) {
-      return res.status(404).json({ error: 'User subscription not found' });
+    if (!proPlan) {
+      return res.status(500).json({ error: 'PRO plan not found' });
     }
     
-    await prisma.subscription.update({
-      where: { userId },
-      data: {
-        plan: 'PRO',
-        status: 'ACTIVE',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
-      }
+    // Get or create subscription
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' }
     });
+    
+    if (subscription) {
+      // Update existing subscription
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          planId: proPlan.id,
+          status: 'ACTIVE',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        }
+      });
+    } else {
+      // Create new subscription
+      await prisma.subscription.create({
+        data: {
+          userId,
+          planId: proPlan.id,
+          status: 'ACTIVE',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        }
+      });
+    }
     
     res.json({
       success: true,
@@ -472,8 +491,17 @@ router.post('/users/:userId/revoke-access', async (req: AuthRequest, res) => {
   try {
     const { userId } = req.params;
     
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId }
+    // Get FREE plan
+    const freePlan = await prisma.plan.findFirst({
+      where: { name: 'FREE' }
+    });
+    
+    if (!freePlan) {
+      return res.status(500).json({ error: 'FREE plan not found' });
+    }
+    
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' }
     });
     
     if (!subscription) {
@@ -481,9 +509,9 @@ router.post('/users/:userId/revoke-access', async (req: AuthRequest, res) => {
     }
     
     await prisma.subscription.update({
-      where: { userId },
+      where: { id: subscription.id },
       data: {
-        plan: 'FREE',
+        planId: freePlan.id,
         status: 'ACTIVE',
         stripeSubscriptionId: null,
         currentPeriodStart: null,
