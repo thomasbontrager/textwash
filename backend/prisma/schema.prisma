@@ -14,6 +14,14 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+  GUEST
+}
+
 // Enum definitions
 // Enums
 enum RoleType {
@@ -203,21 +211,31 @@ model FeatureFlag {
 
 // AIUsageLog Model
 model AIUsageLog {
-  id         String   @id @default(cuid())
-  userId     String
-  model      String
-  tokensUsed Int
-  cost       Float?
-  operation  String
-  metadata   Json?
-  timestamp  DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  model           String
+  tokensUsed      Int
+  tokenCount      Int      @default(0) // Alias for consistency
+  cost            Float?
+  costEstimate    Float    @default(0)
+  operation       String
+  featureType     String? // Type of AI feature used
+  executionTime   Int      @default(0) // milliseconds
+  metadata        Json?
+  timestamp       DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, timestamp])
+  @@index([userId, createdAt])
   @@index([model])
   @@index([timestamp])
+  @@index([createdAt])
+  @@index([featureType])
 }
 
 // WebhookEvent Model
@@ -431,5 +449,142 @@ model PricingPlan {
   updatedAt             DateTime @updatedAt
   
   @@index([active, sortOrder])
+}
+
+// AI Expansion Models
+
+// ToolExecution - Logs all AI tool invocations
+model ToolExecution {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  toolName        String
+  input           Json
+  output          Json?
+  success         Boolean
+  errorMessage    String?
+  tokenCount      Int      @default(0)
+  costEstimate    Float    @default(0)
+  executionTime   Int // milliseconds
+  featureType     String // e.g., "web_search", "pdf_reader", "image_generation"
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([toolName])
+  @@index([featureType])
+  @@index([createdAt])
+}
+
+// VideoJob - Tracks video generation pipeline
+model VideoJob {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  status          String // "pending", "processing", "completed", "failed", "cancelled"
+  stage           String? // Current stage: "script", "scene", "asset", "voice", "timeline", "render"
+  script          Json? // Generated script
+  scenes          Json? // Scene breakdown
+  assets          Json? // Generated/selected assets
+  voiceConfig     Json? // Voice settings and generated audio
+  timeline        Json? // Timeline configuration
+  outputUrl       String? // Final video URL
+  thumbnailUrl    String?
+  duration        Int? // seconds
+  tokenCount      Int      @default(0)
+  costEstimate    Float    @default(0)
+  executionTime   Int      @default(0) // milliseconds
+  errorMessage    String?
+  retryCount      Int      @default(0)
+  metadata        Json? // Pipeline state, preferences, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([id, status]) // jobId lookups
+  @@index([createdAt])
+}
+
+// MediaAsset - Stores generated images, audio, video files
+model MediaAsset {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  type            String // "image", "audio", "video"
+  url             String
+  thumbnailUrl    String?
+  filename        String
+  mimeType        String
+  fileSize        Int // bytes
+  width           Int?
+  height          Int?
+  duration        Int? // seconds for audio/video
+  generationTool  String? // e.g., "dall-e", "stable-diffusion", "eleven-labs"
+  prompt          String?
+  tokenCount      Int      @default(0)
+  costEstimate    Float    @default(0)
+  metadata        Json? // Tool-specific metadata
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// UserMemory - Long-term AI memory for personalization
+model UserMemory {
+  id             String   @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  planId         String?
+  memoryType     String // "preference", "fact", "context", "conversation"
+  key            String // e.g., "writing_style", "favorite_topics"
+  value          Json // Flexible storage for any memory data
+  confidence     Float    @default(1.0) // 0-1 confidence score
+  source         String? // Where this memory came from
+  lastAccessed   DateTime @default(now())
+  accessCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, memoryType, key])
+  @@index([userId])
+  @@index([userId, memoryType])
+  @@index([lastAccessed])
+}
+
+// AutomationTask - Scheduled AI tasks and triggers
+model AutomationTask {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  name            String
+  description     String?
+  taskType        String // "scheduled", "trigger", "webhook"
+  schedule        String? // Cron expression for scheduled tasks
+  triggerCondition Json? // Conditions for trigger-based tasks
+  action          Json // AI action to perform
+  enabled         Boolean  @default(true)
+  lastRun         DateTime?
+  nextRun         DateTime?
+  runCount        Int      @default(0)
+  successCount    Int      @default(0)
+  failureCount    Int      @default(0)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, enabled])
+  @@index([nextRun])
+  @@index([taskType])
 }
 

@@ -20,7 +20,7 @@ router.post('/create-portal-session', authenticateToken, async (req: AuthRequest
 
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      include: { subscription: true }
+      include: { subscriptions: true }
     });
 
     if (!user) {

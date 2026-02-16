@@ -79,12 +79,22 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
           // Determine plan from price ID
           const priceId = subscription.items.data[0]?.price.id;
-          let plan = 'FREE';
           
+          // Find the Plan record by comparing with env variables
+          let planName = 'FREE';
           if (priceId === process.env.STRIPE_STARTER_PRICE_ID) {
-            plan = 'STARTER';
+            planName = 'STARTER';
           } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
-            plan = 'PRO';
+            planName = 'PRO';
+          }
+          
+          const plan = await prisma.plan.findFirst({
+            where: { name: planName }
+          });
+          
+          if (!plan) {
+            console.error(`Plan ${planName} not found in database`);
+            return res.status(500).send('Plan configuration error');
           }
 
           // Determine subscription status
@@ -94,27 +104,36 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                         subscription.status === 'trialing' ? 'TRIALING' :
                         'ACTIVE';
 
-          // Update or create subscription
-          await prisma.subscription.upsert({
-            where: { userId: user.id },
-            update: {
-              plan,
-              status,
-              stripeSubscriptionId: subscription.id,
-              stripeCustomerId: customerId,
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-              currentPeriodStart: new Date(subscription.current_period_start * 1000)
-            },
-            create: {
-              userId: user.id,
-              plan,
-              status,
-              stripeSubscriptionId: subscription.id,
-              stripeCustomerId: customerId,
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-              currentPeriodStart: new Date(subscription.current_period_start * 1000)
-            }
+          // Find existing active subscription or create new one
+          const existingSubscription = await prisma.subscription.findFirst({
+            where: { userId: user.id, status: 'ACTIVE' }
           });
+
+          if (existingSubscription) {
+            await prisma.subscription.update({
+              where: { id: existingSubscription.id },
+              data: {
+                planId: plan.id,
+                status,
+                stripeSubscriptionId: subscription.id,
+                stripeCustomerId: customerId,
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                currentPeriodStart: new Date(subscription.current_period_start * 1000)
+              }
+            });
+          } else {
+            await prisma.subscription.create({
+              data: {
+                userId: user.id,
+                planId: plan.id,
+                status,
+                stripeSubscriptionId: subscription.id,
+                stripeCustomerId: customerId,
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                currentPeriodStart: new Date(subscription.current_period_start * 1000)
+              }
+            });
+          }
 
           console.log(`Checkout completed for user ${user.email}, subscription ${subscription.id}`);
         }
@@ -161,12 +180,22 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
         // Determine plan from price ID
         const priceId = subscription.items.data[0]?.price.id;
-        let plan = 'FREE';
         
+        // Find the Plan record by comparing with env variables
+        let planName = 'FREE';
         if (priceId === process.env.STRIPE_STARTER_PRICE_ID) {
-          plan = 'STARTER';
+          planName = 'STARTER';
         } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
-          plan = 'PRO';
+          planName = 'PRO';
+        }
+        
+        const plan = await prisma.plan.findFirst({
+          where: { name: planName }
+        });
+        
+        if (!plan) {
+          console.error(`Plan ${planName} not found in database`);
+          return res.status(500).send('Plan configuration error');
         }
 
         // Determine subscription status
@@ -176,27 +205,36 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                       subscription.status === 'trialing' ? 'TRIALING' :
                       'ACTIVE';
 
-        // Update or create subscription
-        await prisma.subscription.upsert({
-          where: { userId: user.id },
-          update: {
-            plan,
-            status,
-            stripeSubscriptionId: subscription.id,
-            stripeCustomerId: customerId,
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            currentPeriodStart: new Date(subscription.current_period_start * 1000)
-          },
-          create: {
-            userId: user.id,
-            plan,
-            status,
-            stripeSubscriptionId: subscription.id,
-            stripeCustomerId: customerId,
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            currentPeriodStart: new Date(subscription.current_period_start * 1000)
-          }
+        // Find existing active subscription or create new one
+        const existingSubscription = await prisma.subscription.findFirst({
+          where: { userId: user.id, status: 'ACTIVE' }
         });
+
+        if (existingSubscription) {
+          await prisma.subscription.update({
+            where: { id: existingSubscription.id },
+            data: {
+              planId: plan.id,
+              status,
+              stripeSubscriptionId: subscription.id,
+              stripeCustomerId: customerId,
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              currentPeriodStart: new Date(subscription.current_period_start * 1000)
+            }
+          });
+        } else {
+          await prisma.subscription.create({
+            data: {
+              userId: user.id,
+              planId: plan.id,
+              status,
+              stripeSubscriptionId: subscription.id,
+              stripeCustomerId: customerId,
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              currentPeriodStart: new Date(subscription.current_period_start * 1000)
+            }
+          });
+        }
 
         console.log(`Subscription ${subscription.id} updated for user ${user.email}`);
         break;
@@ -216,12 +254,37 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           return res.status(404).send('User not found');
         }
 
-        // Downgrade to free plan
-        await prisma.subscription.update({
-          where: { userId: user.id },
+        // Get FREE plan
+        const freePlan = await prisma.plan.findFirst({
+          where: { name: 'FREE' }
+        });
+
+        if (!freePlan) {
+          console.error('FREE plan not found in database');
+          return res.status(500).send('Plan configuration error');
+        }
+
+        // Cancel active subscription and create free one
+        const activeSubscription = await prisma.subscription.findFirst({
+          where: { userId: user.id, status: 'ACTIVE' }
+        });
+
+        if (activeSubscription) {
+          await prisma.subscription.update({
+            where: { id: activeSubscription.id },
+            data: {
+              status: 'CANCELED',
+              canceledAt: new Date()
+            }
+          });
+        }
+
+        // Create new free subscription
+        await prisma.subscription.create({
           data: {
-            plan: 'FREE',
-            status: 'CANCELED',
+            userId: user.id,
+            planId: freePlan.id,
+            status: 'ACTIVE',
             stripeSubscriptionId: null,
             currentPeriodEnd: null
           }
