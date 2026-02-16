@@ -71,19 +71,21 @@ model User {
   @@index([organizationId])
 }
 
-// Many-to-many relation between User and Role
-model UserRole {
-  id        String   @id @default(cuid())
-  userId    String
-  role      Role
-  createdAt DateTime @default(now())
+// Many-to-many relation between User and Role - COMMENTED OUT
+// User model doesn't have inverse relation for this
+// model UserRole {
+//   id        String   @id @default(cuid())
+//   userId    String
+//   role      Role
+//   createdAt DateTime @default(now())
+// 
+//   // Relations
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+// 
+//   @@unique([userId, role])
+//   @@index([userId])
+// }
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, role])
-  @@index([userId])
-}
 // Role Model - COMMENTED OUT due to conflict with Role enum
 // The code uses Role as an enum, not a model
 // model Role {
@@ -446,17 +448,36 @@ model PricingPlan {
   @@index([active, sortOrder])
 }
 
-model RolePermission {
-  id          String     @id @default(cuid())
-  role        Role
-  permission  Permission
-  createdAt   DateTime   @default(now())
+// RolePermission model - COMMENTED OUT due to missing Permission enum
+// This needs to be refactored to define Permission as an enum first
+// model RolePermission {
+//   id          String     @id @default(cuid())
+//   role        Role
+//   permission  Permission
+//   createdAt   DateTime   @default(now())
+//   
+//   @@unique([role, permission])
+//   @@index([role])
+// }
+
+// WebhookEvent - Logs webhook events from external services
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  source      String    // e.g., "stripe", "github"
+  eventType   String    // e.g., "customer.subscription.updated"
+  payload     Json      // The full webhook payload
+  status      String    @default("pending") // "pending", "processed", "failed"
+  attempts    Int       @default(1)
+  lastError   String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   
-  @@unique([role, permission])
-  @@index([role])
+  @@index([source, eventType])
+  @@index([status])
+  @@index([createdAt])
 }
 
-model WebhookEvent {
 // AI Expansion Models
 
 // ToolExecution - Logs all AI tool invocations
