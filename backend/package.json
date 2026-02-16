@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "test": "jest"
+    "test": "jest",
+    "test:autorun": "ts-node test/test-autorun.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
