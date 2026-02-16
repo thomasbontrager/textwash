@@ -1,4 +1,14 @@
 import { LLMService, LLMSuggestParams } from '../types';
+import { logAIUsage } from './aiUsageTracking';
+
+export interface LLMResponse {
+  content: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
 
 export class LLMServiceImpl implements LLMService {
   private apiKey: string;
@@ -6,6 +16,7 @@ export class LLMServiceImpl implements LLMService {
   private model: string;
   private maxTokens: number;
   private timeout: number;
+  private userId?: string;
   
   constructor(config: {
     apiKey: string;
@@ -13,12 +24,14 @@ export class LLMServiceImpl implements LLMService {
     model?: string;
     maxTokens?: number;
     timeout?: number;
+    userId?: string;
   }) {
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl || 'https://api.openai.com/v1';
     this.model = config.model || 'gpt-3.5-turbo';
     this.maxTokens = config.maxTokens || 500;
     this.timeout = config.timeout || 10000;
+    this.userId = config.userId;
   }
   
   async suggest(params: LLMSuggestParams): Promise<string> {
@@ -58,6 +71,22 @@ export class LLMServiceImpl implements LLMService {
       
       const data = await response.json() as any;
       const suggestion = data.choices?.[0]?.message?.content || '';
+      
+      // Track usage if userId is available
+      if (this.userId && data.usage) {
+        await logAIUsage({
+          userId: this.userId,
+          model: this.model,
+          promptTokens: data.usage.prompt_tokens || 0,
+          completionTokens: data.usage.completion_tokens || 0,
+          totalTokens: data.usage.total_tokens || 0,
+          operation: params.task || 'suggest',
+          metadata: {
+            temperature: params.temperature || 0.7,
+            maxTokens: params.maxTokens || this.maxTokens,
+          },
+        });
+      }
       
       return this.validateOutput(suggestion);
     } catch (error) {

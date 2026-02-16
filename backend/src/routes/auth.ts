@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AuthRequest } from '../types';
@@ -30,21 +31,75 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
     
+    // Create Stripe customer if Stripe is configured
+    let stripeCustomerId: string | undefined;
+    if (process.env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+          apiVersion: '2023-10-16'
+        });
+        
+        const customer = await stripe.customers.create({
+          email,
+          metadata: {
+            source: 'signup'
+          }
+        });
+        
+        stripeCustomerId = customer.id;
+        console.log(`Stripe customer created: ${customer.id} for ${email}`);
+      } catch (stripeError) {
+        console.error('Failed to create Stripe customer on signup:', stripeError);
+        // Continue with signup even if Stripe customer creation fails
+      }
+    }
+    
     // Create user
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
-        role: 'USER'
+        role: 'USER',
+        stripeId: stripeCustomerId
       }
     });
+    
+    // Get or create FREE plan
+    let freePlan = await prisma.plan.findFirst({
+      where: { name: 'FREE' }
+    });
+    
+    if (!freePlan) {
+      freePlan = await prisma.plan.create({
+        data: {
+          name: 'FREE',
+          displayName: 'Free',
+          description: 'Basic text cleaning features',
+          price: 0,
+          currency: 'usd',
+          interval: 'month',
+          featureLimits: {
+            maxRequests: 100,
+            maxLength: 1000
+          },
+          planAccess: {
+            features: ['basic_cleaning', 'whitespace', 'punctuation']
+          },
+          isActive: true
+        }
+      });
+    }
     
     // Create free subscription
     const subscription = await prisma.subscription.create({
       data: {
         userId: user.id,
-        plan: 'FREE',
-        status: 'ACTIVE'
+        planId: freePlan.id,
+        status: 'ACTIVE',
+        stripeCustomerId: stripeCustomerId
+      },
+      include: {
+        plan: true
       }
     });
     
@@ -61,7 +116,7 @@ router.post('/signup', async (req, res) => {
         email: user.email,
         role: user.role,
         subscription: {
-          plan: subscription.plan,
+          plan: subscription.plan.name,
           status: subscription.status
         }
       },
@@ -85,7 +140,7 @@ router.post('/login', async (req, res) => {
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { subscription: true }
+      include: { subscriptions: true }
     });
     
     if (!user) {
@@ -133,7 +188,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        subscription: user.subscription
+        subscription: user.subscriptions?.find(s => s.status === 'ACTIVE') || user.subscriptions?.[0]
       },
       token
     });
@@ -148,7 +203,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      include: { subscription: true }
+      include: { subscriptions: true }
     });
     
     if (!user) {
@@ -159,7 +214,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
       id: user.id,
       email: user.email,
       role: user.role,
-      subscription: user.subscription
+      subscription: user.subscriptions?.find(s => s.status === 'ACTIVE') || user.subscriptions?.[0]
     });
   } catch (error) {
     console.error('Get user error:', error);

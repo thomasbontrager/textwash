@@ -1,21 +1,22 @@
 import express from 'express';
 import { AuthRequest } from '../types';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth';
 import { reloadAgents, getAgentNames, getAllAgents } from '../services/agentRegistry';
 import { getRules, updateRules, clearRuleCache, getLatestRuleVersion } from '../services/ruleLoader';
 import { getPolicies, createPolicy, updatePolicy, deletePolicy } from '../services/policyService';
+import { PrismaClient, RoleEnum as Role, PermissionEnum as Permission } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// All admin routes require authentication and admin role
+// All admin routes require authentication
 router.use(authenticateToken);
-router.use(requireAdmin);
 
 // GET /admin/agents - List all registered agents
-router.get('/agents', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/agents', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const agents = getAllAgents();
     const agentList = agents.map(agent => ({
@@ -31,7 +32,8 @@ router.get('/agents', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/agents/reload - Trigger hot reload of agents
-router.post('/agents/reload', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.post('/agents/reload', requirePermission(['MANAGE_FEATURE_FLAGS']), async (req: AuthRequest, res) => {
   try {
     await reloadAgents();
     const agentNames = getAgentNames();
@@ -49,7 +51,8 @@ router.post('/agents/reload', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/rules/:agentName - Get rules for a specific agent
-router.get('/rules/:agentName', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/rules/:agentName', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const rules = await getRules(agentName);
@@ -67,7 +70,8 @@ router.get('/rules/:agentName', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/rules/:agentName - Update rules for a specific agent
-router.put('/rules/:agentName', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.put('/rules/:agentName', requirePermission(['MANAGE_FEATURE_FLAGS']), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     const { rules, description } = req.body;
@@ -92,7 +96,8 @@ router.put('/rules/:agentName', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/rules/:agentName/clear-cache - Clear cache for specific agent
-router.post('/rules/:agentName/clear-cache', async (req: AuthRequest, res) => {
+// Requires MANAGE_FEATURE_FLAGS permission
+router.post('/rules/:agentName/clear-cache', requirePermission(['MANAGE_FEATURE_FLAGS']), async (req: AuthRequest, res) => {
   try {
     const { agentName } = req.params;
     clearRuleCache(agentName);
@@ -108,7 +113,8 @@ router.post('/rules/:agentName/clear-cache', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/policies - List all policies
-router.get('/policies', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/policies', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -137,7 +143,8 @@ router.get('/policies', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/policies - Create a new policy
-router.post('/policies', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.post('/policies', requirePermission(['MANAGE_PLANS']), async (req: AuthRequest, res) => {
   try {
     const { organizationId, name, type, rules } = req.body;
     
@@ -158,7 +165,8 @@ router.post('/policies', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/policies/:policyId - Update a policy
-router.put('/policies/:policyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.put('/policies/:policyId', requirePermission(['MANAGE_PLANS']), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     const { rules, enabled } = req.body;
@@ -176,7 +184,8 @@ router.put('/policies/:policyId', async (req: AuthRequest, res) => {
 });
 
 // DELETE /admin/policies/:policyId - Delete a policy
-router.delete('/policies/:policyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_PLANS permission
+router.delete('/policies/:policyId', requirePermission(['MANAGE_PLANS']), async (req: AuthRequest, res) => {
   try {
     const { policyId } = req.params;
     
@@ -193,7 +202,8 @@ router.delete('/policies/:policyId', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/api-keys - List API keys
-router.get('/api-keys', async (req: AuthRequest, res) => {
+// Requires ADMIN or SUPER_ADMIN role
+router.get('/api-keys', requireRole(['ADMIN', 'SUPER_ADMIN']), async (req: AuthRequest, res) => {
   try {
     const { organizationId } = req.query;
     
@@ -221,7 +231,7 @@ router.get('/api-keys', async (req: AuthRequest, res) => {
     });
     
     // Hide actual keys for security
-    const sanitizedKeys = apiKeys.map(k => ({
+    const sanitizedKeys = apiKeys.map((k: any) => ({
       ...k,
       key: `${k.key.substring(0, 8)}...${k.key.substring(k.key.length - 4)}`
     }));
@@ -234,7 +244,8 @@ router.get('/api-keys', async (req: AuthRequest, res) => {
 });
 
 // POST /admin/api-keys - Create a new API key
-router.post('/api-keys', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.post('/api-keys', requirePermission(['MANAGE_USERS']), async (req: AuthRequest, res) => {
   try {
     const { userId, organizationId, name, rateLimit, enabledAgents } = req.body;
     
@@ -272,7 +283,8 @@ router.post('/api-keys', async (req: AuthRequest, res) => {
 });
 
 // PUT /admin/api-keys/:keyId - Update API key
-router.put('/api-keys/:keyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.put('/api-keys/:keyId', requirePermission(['MANAGE_USERS']), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     const { enabled, rateLimit, enabledAgents } = req.body;
@@ -297,7 +309,8 @@ router.put('/api-keys/:keyId', async (req: AuthRequest, res) => {
 });
 
 // DELETE /admin/api-keys/:keyId - Delete API key
-router.delete('/api-keys/:keyId', async (req: AuthRequest, res) => {
+// Requires MANAGE_USERS permission
+router.delete('/api-keys/:keyId', requirePermission(['MANAGE_USERS']), async (req: AuthRequest, res) => {
   try {
     const { keyId } = req.params;
     
@@ -316,7 +329,8 @@ router.delete('/api-keys/:keyId', async (req: AuthRequest, res) => {
 });
 
 // GET /admin/usage - Get usage statistics
-router.get('/usage', async (req: AuthRequest, res) => {
+// Requires VIEW_LOGS permission
+router.get('/usage', requirePermission(['VIEW_LOGS']), async (req: AuthRequest, res) => {
   try {
     const { organizationId, startDate, endDate } = req.query;
     
@@ -371,6 +385,491 @@ router.get('/usage', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Get usage error:', error);
     res.status(500).json({ error: 'Failed to get usage' });
+  }
+});
+
+// GET /admin/ai-usage/daily - Get daily AI usage statistics
+// Requires VIEW_LOGS permission
+router.get('/ai-usage/daily', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const { getDailyUsageStats } = await import('../services/aiUsageTracking');
+    const dailyStats = await getDailyUsageStats(start, end);
+    
+    res.json({
+      startDate: start,
+      endDate: end,
+      stats: dailyStats,
+    });
+  } catch (error) {
+    console.error('Get daily AI usage error:', error);
+    res.status(500).json({ error: 'Failed to get daily AI usage' });
+  }
+});
+
+// GET /admin/ai-usage/users - Get AI usage per user
+// Requires VIEW_LOGS permission
+router.get('/ai-usage/users', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const { getUsersUsageStats } = await import('../services/aiUsageTracking');
+    const userStats = await getUsersUsageStats(start, end);
+    
+    res.json({
+      startDate: start,
+      endDate: end,
+      users: userStats,
+    });
+  } catch (error) {
+    console.error('Get user AI usage error:', error);
+    res.status(500).json({ error: 'Failed to get user AI usage' });
+  }
+});
+
+// GET /admin/ai-usage/summary - Get AI usage summary
+// Requires VIEW_LOGS permission
+router.get('/ai-usage/summary', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const { getDailyUsageStats, getUsersUsageStats } = await import('../services/aiUsageTracking');
+    const dailyStats = await getDailyUsageStats(start, end);
+    const userStats = await getUsersUsageStats(start, end);
+    
+    // Calculate totals
+    const totalCost = dailyStats.reduce((sum, day) => sum + day.cost, 0);
+    const totalTokens = dailyStats.reduce((sum, day) => sum + day.tokens, 0);
+    const totalRequests = dailyStats.reduce((sum, day) => sum + day.requests, 0);
+    
+    res.json({
+      startDate: start,
+      endDate: end,
+      summary: {
+        totalCost,
+        totalTokens,
+        totalRequests,
+        activeUsers: userStats.length,
+        averageCostPerUser: userStats.length > 0 ? totalCost / userStats.length : 0,
+      },
+      dailyStats,
+      topUsers: userStats.slice(0, 10), // Top 10 users by cost
+    });
+  } catch (error) {
+    console.error('Get AI usage summary error:', error);
+    res.status(500).json({ error: 'Failed to get AI usage summary' });
+// GET /admin/users - List all users
+router.get('/users', async (req: AuthRequest, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        subscriptions: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    // Remove sensitive data
+    const sanitizedUsers = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      subscriptions: user.subscriptions,
+      createdAt: user.createdAt
+    }));
+    
+    res.json(sanitizedUsers);
+  } catch (error) {
+    console.error('List users error:', error);
+    res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+// ===== FEATURE FLAG ROUTES =====
+
+// GET /admin/feature-flags - List all feature flags
+router.get('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const flags = await prisma.featureFlag.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    res.json(flags);
+  } catch (error) {
+    console.error('List feature flags error:', error);
+    res.status(500).json({ error: 'Failed to list feature flags' });
+  }
+});
+
+// POST /admin/users/:userId/grant-pro - Grant Pro access to user
+router.post('/users/:userId/grant-pro', async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get PRO plan
+    const proPlan = await prisma.plan.findFirst({
+      where: { name: 'PRO' }
+    });
+    
+    if (!proPlan) {
+      return res.status(500).json({ error: 'PRO plan not found' });
+    }
+    
+    // Get or create subscription
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' }
+    });
+    
+    if (subscription) {
+      // Update existing subscription
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          planId: proPlan.id,
+          status: 'ACTIVE',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        }
+      });
+    } else {
+      // Create new subscription
+      await prisma.subscription.create({
+        data: {
+          userId,
+          planId: proPlan.id,
+          status: 'ACTIVE',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Pro access granted'
+    });
+  } catch (error) {
+    console.error('Grant Pro error:', error);
+    res.status(500).json({ error: 'Failed to grant Pro access' });
+  }
+});
+
+// POST /admin/users/:userId/revoke-access - Revoke premium access
+router.post('/users/:userId/revoke-access', async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get FREE plan
+    const freePlan = await prisma.plan.findFirst({
+      where: { name: 'FREE' }
+    });
+    
+    if (!freePlan) {
+      return res.status(500).json({ error: 'FREE plan not found' });
+    }
+    
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' }
+    });
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'User subscription not found' });
+    }
+    
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        planId: freePlan.id,
+        status: 'ACTIVE',
+        stripeSubscriptionId: null,
+        currentPeriodStart: null,
+        currentPeriodEnd: null
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Access revoked'
+    });
+  } catch (error) {
+    console.error('Revoke access error:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
+  }
+});
+
+// GET /admin/feature-flags/:id - Get a specific feature flag
+router.get('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const flag = await prisma.featureFlag.findUnique({
+      where: { id }
+    });
+    
+    if (!flag) {
+      return res.status(404).json({ error: 'Feature flag not found' });
+    }
+    
+    res.json(flag);
+  } catch (error) {
+    console.error('Get feature flag error:', error);
+    res.status(500).json({ error: 'Failed to get feature flag' });
+  }
+});
+
+// POST /admin/feature-flags - Create a new feature flag
+router.post('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const { name, description, isEnabled, rolloutPercentage, planAccess, userOverrides } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    const flag = await prisma.featureFlag.create({
+      data: {
+        name,
+        description: description || null,
+        isEnabled: isEnabled ?? false,
+        rolloutPercentage: rolloutPercentage ?? 0,
+        planAccess: planAccess || null,
+        userOverrides: userOverrides || null
+      }
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Feature flag created successfully',
+      flag
+    });
+  } catch (error) {
+    console.error('Create feature flag error:', error);
+    res.status(500).json({ error: 'Failed to create feature flag' });
+  }
+});
+
+// PUT /admin/feature-flags/:id - Update a feature flag
+router.put('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, isEnabled, rolloutPercentage, planAccess, userOverrides } = req.body;
+    
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (isEnabled !== undefined) updateData.isEnabled = isEnabled;
+    if (rolloutPercentage !== undefined) updateData.rolloutPercentage = rolloutPercentage;
+    if (planAccess !== undefined) updateData.planAccess = planAccess;
+    if (userOverrides !== undefined) updateData.userOverrides = userOverrides;
+    
+    const flag = await prisma.featureFlag.update({
+      where: { id },
+      data: updateData
+    });
+    
+    res.json({
+      success: true,
+      message: 'Feature flag updated successfully',
+      flag
+    });
+  } catch (error) {
+    console.error('Update feature flag error:', error);
+    res.status(500).json({ error: 'Failed to update feature flag' });
+  }
+});
+
+// DELETE /admin/feature-flags/:id - Delete a feature flag
+router.delete('/feature-flags/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    await prisma.featureFlag.delete({
+      where: { id }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Access revoked'
+    });
+  } catch (error) {
+    console.error('Revoke access error:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
+  }
+});
+
+// POST /admin/stripe-config - Save Stripe configuration
+router.post('/stripe-config', async (req: AuthRequest, res) => {
+  try {
+    const { publishableKey, secretKey, webhookSecret } = req.body;
+    
+    if (!publishableKey) {
+      return res.status(400).json({ error: 'Publishable key is required' });
+    }
+    
+    // Find or create admin profile for this admin user
+    const existingProfile = await prisma.adminProfile.findUnique({
+      where: { userId: req.user!.id }
+    });
+    
+    const updateData: any = {
+      stripePublishableKey: publishableKey
+    };
+    
+    if (secretKey) {
+      updateData.stripeSecretKey = secretKey;
+    }
+    
+    if (webhookSecret) {
+      updateData.stripeWebhookSecret = webhookSecret;
+    }
+    
+    if (existingProfile) {
+      await prisma.adminProfile.update({
+        where: { userId: req.user!.id },
+        data: updateData
+      });
+    } else {
+      await prisma.adminProfile.create({
+        data: {
+          userId: req.user!.id,
+          ...updateData
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Stripe configuration saved'
+    });
+  } catch (error) {
+    console.error('Save Stripe config error:', error);
+    res.status(500).json({ error: 'Failed to save Stripe configuration' });
+  }
+});
+
+// ===== WEBHOOK MONITORING ROUTES =====
+
+// GET /admin/webhooks - List webhook events with filtering
+// Requires MANAGE_BILLING permission
+router.get('/webhooks', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
+  try {
+    const { eventType, status, limit = '100', offset = '0' } = req.query;
+    
+    // Validate and sanitize pagination parameters
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+    
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 1000) {
+      return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
+    }
+    
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      return res.status(400).json({ error: 'Invalid offset parameter. Must be a non-negative integer.' });
+    }
+    
+    const where: any = {};
+    
+    // Filter by event type if provided
+    if (eventType) {
+      where.eventType = eventType as string;
+    }
+    
+    // Filter by status if provided
+    if (status) {
+      where.status = status as string;
+    }
+    
+    // Get total count for pagination
+    const total = await prisma.webhookEvent.count({ where });
+    
+    // Get webhook events
+    const webhooks = await prisma.webhookEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: parsedLimit,
+      skip: parsedOffset
+    });
+    
+    res.json({
+      webhooks,
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset
+    });
+  } catch (error) {
+    console.error('List webhooks error:', error);
+    res.status(500).json({ error: 'Failed to list webhooks' });
+  }
+});
+
+// GET /admin/webhooks/:id - Get a specific webhook event
+// Requires MANAGE_BILLING permission
+router.get('/webhooks/:id', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    const webhook = await prisma.webhookEvent.findUnique({
+      where: { id }
+    });
+    
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook event not found' });
+    }
+    
+    res.json(webhook);
+  } catch (error) {
+    console.error('Get webhook error:', error);
+    res.status(500).json({ error: 'Failed to get webhook' });
+  }
+});
+
+// POST /admin/webhooks/:id/retry - Retry a failed webhook
+// Requires MANAGE_BILLING permission
+router.post('/webhooks/:id/retry', requirePermission(['MANAGE_BILLING']), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the webhook event
+    const webhook = await prisma.webhookEvent.findUnique({
+      where: { id }
+    });
+    
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook event not found' });
+    }
+    
+    // Reset the webhook status to pending for retry
+    await prisma.webhookEvent.update({
+      where: { id },
+      data: {
+        status: 'pending',
+        lastError: null,
+        attempts: webhook.attempts + 1
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Webhook event queued for retry'
+    });
+  } catch (error) {
+    console.error('Retry webhook error:', error);
+    res.status(500).json({ error: 'Failed to retry webhook' });
   }
 });
 

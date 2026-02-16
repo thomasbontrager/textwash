@@ -1,66 +1,31 @@
-// CONFIG
-const API_URL = SUBDOMAIN_CONFIG.apiUrl;
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Sz8jsRlPGLngNpAf33rUQCQmgqhhI8cU46n6Y9fJHTAvD5ugQ2s2n4WSPgePtigmnnWncSkO24aymeWSO3RCH6O00wleAK6c3';
-let stripePromise = null;
-try {
-  if (typeof Stripe !== 'undefined') {
-    stripePromise = Stripe(STRIPE_PUBLISHABLE_KEY);
-  }
-} catch (e) {
-  console.warn('Stripe not available:', e);
-}
 
-// STATE
+// ===== SIMPLE STATE =====
 let currentUser = null;
-let currentSubscription = null;
 
-// INIT
-document.addEventListener('DOMContentLoaded', () => {
-  checkAuthStatus();
-  attachEventListeners();
-  document.body.classList.add('loaded');
-});
-
-// ROUTING
+// ===== PAGE SWITCHING =====
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(page => {
     page.classList.add('hidden');
   });
+
   const page = document.getElementById(pageId);
   if (page) {
     page.classList.remove('hidden');
     window.scrollTo(0, 0);
-  }
-}
-
-// AUTH
-async function checkAuthStatus() {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        currentUser = await response.json();
-        currentSubscription = currentUser.subscription;
-        showPage('dashboardPage');
-        updateDashboard();
-      } else {
-        localStorage.removeItem('token');
-        showPage('homePage');
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      showPage('homePage');
+    
+    // Load data when showing specific pages
+    if (pageId === 'accountPage') {
+      loadSubscriptionInfo();
+    } else if (pageId === 'adminPage') {
+      // Default to stripe tab, but don't reload users yet
     }
-  } else {
-    showPage('homePage');
   }
 }
 
+// ===== SIGNUP =====
 async function handleSignup(event) {
   event.preventDefault();
+
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPassword').value;
   const password2 = document.getElementById('signupPassword2').value;
@@ -70,71 +35,64 @@ async function handleSignup(event) {
     return;
   }
 
-  try {
-    const response = await fetch(`${API_URL}/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
+  const response = await fetch('/api/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
 
-    if (response.ok) {
-      const { user, token } = await response.json();
-      localStorage.setItem('token', token);
-      currentUser = user;
-      currentSubscription = user.subscription;
-      showPage('dashboardPage');
-      updateDashboard();
-    } else {
-      const error = await response.json();
-      document.getElementById('signupError').textContent = error.error || 'Signup failed';
-    }
-  } catch (error) {
-    document.getElementById('signupError').textContent = 'Network error';
+  const data = await response.json();
+
+  if (data.success) {
+    currentUser = data.user;
+    showPage('dashboardPage');
+  } else {
+    document.getElementById('signupError').textContent = data.error || 'Signup failed';
   }
 }
 
+// ===== LOGIN =====
 async function handleLogin(event) {
   event.preventDefault();
+
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
 
-  try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
+  const response = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
 
-    if (response.ok) {
-      const { user, token } = await response.json();
-      localStorage.setItem('token', token);
-      currentUser = user;
-      currentSubscription = user.subscription;
-      showPage('dashboardPage');
-      updateDashboard();
-    } else {
-      const error = await response.json();
-      document.getElementById('loginError').textContent = error.error || 'Login failed';
-    }
-  } catch (error) {
-    document.getElementById('loginError').textContent = 'Network error';
+  const data = await response.json();
+
+  if (data.success) {
+    currentUser = data.user;
+    showPage('dashboardPage');
+  } else {
+    document.getElementById('loginError').textContent = data.error || 'Login failed';
   }
 }
 
+// ===== LOGOUT =====
 function handleLogout() {
-  localStorage.removeItem('token');
   currentUser = null;
-  currentSubscription = null;
-  document.getElementById('loginForm').reset();
-  document.getElementById('signupForm').reset();
   showPage('homePage');
 }
 
+<<<<<<< HEAD
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tab + 'Form')?.classList.add('active');
-  event.target.classList.add('active');
+  
+  // Find and activate the correct tab button
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  tabButtons.forEach(btn => {
+    if (btn.textContent?.includes(tab === 'login' ? 'Sign In' : 'Sign Up')) {
+      btn.classList.add('active');
+    }
+  });
 }
 
 // DASHBOARD
@@ -160,50 +118,30 @@ function showAccountMenu() {
 }
 
 // PRICING & CHECKOUT
+=======
+// ===== STRIPE CHECKOUT =====
+>>>>>>> da94544 (Add Prisma setup, schema, and server updates)
 async function startPlan(plan) {
-  if (!currentUser) {
-    showPage('authPage');
-    return;
-  }
+  const response = await fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan })
+  });
 
-  if (plan === 'free') {
-    alert('Free access available!');
-    return;
-  }
+  const data = await response.json();
 
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/subscriptions/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ plan: plan.toUpperCase() })
-    });
-
-    if (response.ok) {
-      const { sessionId, url } = await response.json();
-      if (stripePromise && sessionId) {
-        const result = await stripePromise.redirectToCheckout({ sessionId });
-        if (result.error) {
-          alert(result.error.message || 'Stripe checkout failed');
-        }
-      } else if (url) {
-        window.location.href = url;
-      }
-    } else {
-      alert('Failed to create session');
-    }
-  } catch (error) {
-    alert('Error: ' + error.message);
+  if (data.url) {
+    window.location.href = data.url;
+  } else {
+    alert('Checkout failed');
   }
 }
 
-// SUBSCRIPTIONS
-async function cancelSubscription() {
-  if (!confirm('Cancel subscription?')) return;
+// ===== CLEAN TEXT =====
+document.getElementById('cleanBtn')?.addEventListener('click', () => {
+  const input = document.getElementById('input').value;
 
+<<<<<<< HEAD
   try {
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/subscriptions/cancel-subscription`, {
@@ -245,7 +183,12 @@ async function openStripePortal() {
 
 async function loadSubscriptionInfo() {
   const info = document.getElementById('subscriptionInfo');
-  if (!currentSubscription) return;
+  if (!info) return;
+  
+  if (!currentSubscription) {
+    info.innerHTML = '<p>No subscription information available</p>';
+    return;
+  }
 
   let html = `<p><strong>Plan:</strong> ${currentSubscription.plan}</p>`;
   if (currentSubscription.currentPeriodEnd) {
@@ -267,15 +210,32 @@ function cleanText(text) {
     .split("\n")
     .map(line => line.trim())
     .join("\n")
+=======
+  const cleaned = input
+    .replace(/\s+/g, ' ')
+    .replace(/\s([?.!,])/g, '$1')
+>>>>>>> da94544 (Add Prisma setup, schema, and server updates)
     .trim();
-}
 
+<<<<<<< HEAD
 // ADMIN
 function switchAdminTab(tab) {
   document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
   document.getElementById(tab + 'Tab')?.classList.remove('hidden');
-  event.target.classList.add('active');
+  
+  // Find and activate the correct tab button
+  const tabButtons = document.querySelectorAll('.admin-tab');
+  tabButtons.forEach(btn => {
+    if (btn.textContent?.toLowerCase().includes(tab.toLowerCase())) {
+      btn.classList.add('active');
+    }
+  });
+  
+  // Load data when switching to users tab
+  if (tab === 'users') {
+    loadUsers();
+  }
 }
 
 async function handleStripeConfig(event) {
@@ -367,6 +327,32 @@ function attachEventListeners() {
     const output = document.getElementById('output');
     output.value = cleanText(input.value);
   });
+  
+  document.getElementById('aiSpellBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    
+    if (!input.value) {
+      alert('Please enter some text first');
+      return;
+    }
+    
+    // TODO: Implement AI spell check via API
+    alert('AI spelling & grammar feature requires backend API integration');
+  });
+  
+  document.getElementById('aiRewriteBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    
+    if (!input.value) {
+      alert('Please enter some text first');
+      return;
+    }
+    
+    // TODO: Implement AI rewrite via API
+    alert('AI rewrite feature requires backend API integration');
+  });
 
   document.getElementById('copyBtn')?.addEventListener('click', () => {
     const output = document.getElementById('output');
@@ -398,3 +384,32 @@ window.cancelSubscription = cancelSubscription;
 window.openStripePortal = openStripePortal;
 window.switchAdminTab = switchAdminTab;
 window.handleStripeConfig = handleStripeConfig;
+window.loadUsers = loadUsers;
+window.grantProAccess = grantProAccess;
+window.revokeAccess = revokeAccess;
+=======
+  document.getElementById('output').value = cleaned;
+});
+
+// ===== COPY BUTTON =====
+document.getElementById('copyBtn')?.addEventListener('click', () => {
+  const output = document.getElementById('output');
+  output.select();
+  document.execCommand('copy');
+  alert('Copied!');
+});
+
+// ===== NAVIGATION BUTTONS =====
+document.getElementById('startFreeBtn')?.addEventListener('click', () => {
+  showPage('authPage');
+});
+
+document.getElementById('viewPricingBtn')?.addEventListener('click', () => {
+  showPage('pricingPage');
+});
+
+// Default page
+document.addEventListener('DOMContentLoaded', () => {
+  showPage('homePage');
+});
+>>>>>>> da94544 (Add Prisma setup, schema, and server updates)
