@@ -71,6 +71,19 @@ model User {
   @@index([organizationId])
 }
 
+// Many-to-many relation between User and Role
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([userId])
+}
 // Role Model - COMMENTED OUT due to conflict with Role enum
 // The code uses Role as an enum, not a model
 // model Role {
@@ -236,24 +249,6 @@ model AIUsageLog {
   @@index([timestamp])
   @@index([createdAt])
   @@index([featureType])
-}
-
-// WebhookEvent Model
-model WebhookEvent {
-  id          String    @id @default(cuid())
-  source      String
-  eventType   String
-  payload     Json
-  status      String    @default("pending") // pending, processed, failed
-  attempts    Int       @default(0)
-  lastError   String?
-  processedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([source, eventType])
-  @@index([status])
-  @@index([createdAt])
 }
 
 // EmailTemplate Model
@@ -451,6 +446,17 @@ model PricingPlan {
   @@index([active, sortOrder])
 }
 
+model RolePermission {
+  id          String     @id @default(cuid())
+  role        Role
+  permission  Permission
+  createdAt   DateTime   @default(now())
+  
+  @@unique([role, permission])
+  @@index([role])
+}
+
+model WebhookEvent {
 // AI Expansion Models
 
 // ToolExecution - Logs all AI tool invocations
