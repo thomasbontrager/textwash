@@ -4,6 +4,7 @@ import { authenticateToken, requireRole, requirePermission } from '../middleware
 import { reloadAgents, getAgentNames, getAllAgents } from '../services/agentRegistry';
 import { getRules, updateRules, clearRuleCache, getLatestRuleVersion } from '../services/ruleLoader';
 import { getPolicies, createPolicy, updatePolicy, deletePolicy } from '../services/policyService';
+import { PrismaClient, RoleEnum as Role, PermissionEnum as Permission } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 
@@ -387,6 +388,86 @@ router.get('/usage', requirePermission(['VIEW_LOGS']), async (req: AuthRequest, 
   }
 });
 
+// GET /admin/ai-usage/daily - Get daily AI usage statistics
+// Requires VIEW_LOGS permission
+router.get('/ai-usage/daily', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const { getDailyUsageStats } = await import('../services/aiUsageTracking');
+    const dailyStats = await getDailyUsageStats(start, end);
+    
+    res.json({
+      startDate: start,
+      endDate: end,
+      stats: dailyStats,
+    });
+  } catch (error) {
+    console.error('Get daily AI usage error:', error);
+    res.status(500).json({ error: 'Failed to get daily AI usage' });
+  }
+});
+
+// GET /admin/ai-usage/users - Get AI usage per user
+// Requires VIEW_LOGS permission
+router.get('/ai-usage/users', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const { getUsersUsageStats } = await import('../services/aiUsageTracking');
+    const userStats = await getUsersUsageStats(start, end);
+    
+    res.json({
+      startDate: start,
+      endDate: end,
+      users: userStats,
+    });
+  } catch (error) {
+    console.error('Get user AI usage error:', error);
+    res.status(500).json({ error: 'Failed to get user AI usage' });
+  }
+});
+
+// GET /admin/ai-usage/summary - Get AI usage summary
+// Requires VIEW_LOGS permission
+router.get('/ai-usage/summary', requirePermission([Permission.VIEW_LOGS]), async (req: AuthRequest, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const { getDailyUsageStats, getUsersUsageStats } = await import('../services/aiUsageTracking');
+    const dailyStats = await getDailyUsageStats(start, end);
+    const userStats = await getUsersUsageStats(start, end);
+    
+    // Calculate totals
+    const totalCost = dailyStats.reduce((sum, day) => sum + day.cost, 0);
+    const totalTokens = dailyStats.reduce((sum, day) => sum + day.tokens, 0);
+    const totalRequests = dailyStats.reduce((sum, day) => sum + day.requests, 0);
+    
+    res.json({
+      startDate: start,
+      endDate: end,
+      summary: {
+        totalCost,
+        totalTokens,
+        totalRequests,
+        activeUsers: userStats.length,
+        averageCostPerUser: userStats.length > 0 ? totalCost / userStats.length : 0,
+      },
+      dailyStats,
+      topUsers: userStats.slice(0, 10), // Top 10 users by cost
+    });
+  } catch (error) {
+    console.error('Get AI usage summary error:', error);
+    res.status(500).json({ error: 'Failed to get AI usage summary' });
 // GET /admin/users - List all users
 router.get('/users', async (req: AuthRequest, res) => {
   try {

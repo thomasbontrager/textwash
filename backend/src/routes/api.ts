@@ -2,6 +2,7 @@ import express from 'express';
 import { AuthRequest, SystemContext, CleanRequest, CleanResponse } from '../types';
 import { authenticateApiKey } from '../middleware/auth';
 import { apiKeyRateLimiter } from '../middleware/rateLimit';
+import { enforceAIUsageLimit } from '../middleware/usageLimits';
 import { getAgent, getAllAgents } from '../services/agentRegistry';
 import { getPolicies, applyPolicies, validateAgainstPolicies } from '../services/policyService';
 import { LLMServiceImpl, MockLLMService } from '../services/llm';
@@ -41,7 +42,8 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
           apiUrl: process.env.LLM_API_URL,
           model: process.env.LLM_MODEL,
           maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500'),
-          timeout: parseInt(process.env.LLM_TIMEOUT || '10000')
+          timeout: parseInt(process.env.LLM_TIMEOUT || '10000'),
+          userId: req.user!.id
         })
       : new MockLLMService();
     
@@ -134,7 +136,7 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
 });
 
 // POST /v1/rewrite - AI-powered rewriting
-router.post('/v1/rewrite', async (req: AuthRequest, res) => {
+router.post('/v1/rewrite', enforceAIUsageLimit, async (req: AuthRequest, res) => {
   try {
     const { text, mode } = req.body as CleanRequest;
     
@@ -165,7 +167,8 @@ router.post('/v1/rewrite', async (req: AuthRequest, res) => {
           apiUrl: process.env.LLM_API_URL,
           model: process.env.LLM_MODEL,
           maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500'),
-          timeout: parseInt(process.env.LLM_TIMEOUT || '10000')
+          timeout: parseInt(process.env.LLM_TIMEOUT || '10000'),
+          userId: req.user!.id
         })
       : new MockLLMService();
     

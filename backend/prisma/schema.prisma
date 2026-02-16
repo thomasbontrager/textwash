@@ -7,6 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RoleEnum {
+  USER
+  SUPPORT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PermissionEnum {
+  MANAGE_USERS
+  MANAGE_PLANS
+  MANAGE_FEATURE_FLAGS
+  MANAGE_OAUTH
+  VIEW_LOGS
+  IMPERSONATE_USERS
+  MANAGE_BILLING
+}
+
 enum SubscriptionPlan {
   FREE
   STARTER
