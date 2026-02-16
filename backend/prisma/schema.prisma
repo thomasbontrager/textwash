@@ -31,6 +31,15 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+  GUEST
+}
+
+// Enum definitions
 // Enums
 enum RoleType {
   SUPER_ADMIN
@@ -57,12 +66,12 @@ model User {
   firstName    String?
   lastName     String?
   stripeId     String?   @unique
+  role         Role      @default(USER)
   deletedAt    DateTime? // Soft delete support
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   // Relations
-  roles           UserRole[]
   subscriptions   Subscription[]
   adminProfile    AdminProfile?
   apiKeys         ApiKey[]
@@ -79,70 +88,89 @@ model User {
   @@index([organizationId])
 }
 
-// Role Model
-model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  type        RoleType @default(USER)
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Many-to-many relation between User and Role - COMMENTED OUT
+// User model doesn't have inverse relation for this
+// model UserRole {
+//   id        String   @id @default(cuid())
+//   userId    String
+//   role      Role
+//   createdAt DateTime @default(now())
+// 
+//   // Relations
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+// 
+//   @@unique([userId, role])
+//   @@index([userId])
+// }
 
-  // Relations
-  users       UserRole[]
-  permissions RolePermission[]
+// Role Model - COMMENTED OUT due to conflict with Role enum
+// The code uses Role as an enum, not a model
+// model Role {
+//   id          String   @id @default(cuid())
+//   name        String   @unique
+//   type        RoleType @default(USER)
+//   description String?
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+// 
+//   // Relations
+//   users       UserRole[]
+//   permissions RolePermission[]
+// 
+//   @@index([type])
+// }
 
-  @@index([type])
-}
+// Permission Model - COMMENTED OUT due to conflict with Permission enum
+// The code uses Permission as an enum, not a model
+// model Permission {
+//   id          String   @id @default(cuid())
+//   name        String   @unique
+//   resource    String
+//   action      String
+//   description String?
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+// 
+//   // Relations
+//   roles RolePermission[]
+// 
+//   @@unique([resource, action])
+//   @@index([resource])
+// }
 
-// Permission Model
-model Permission {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  resource    String
-  action      String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Many-to-many relation between Role and Permission - COMMENTED OUT
+// This needs to be refactored to work with enum-based roles
+// model RolePermission {
+//   id           String   @id @default(cuid())
+//   roleId       String
+//   permissionId String
+//   createdAt    DateTime @default(now())
+// 
+//   // Relations
+//   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+//   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+// 
+//   @@unique([roleId, permissionId])
+//   @@index([roleId])
+//   @@index([permissionId])
+// }
 
-  // Relations
-  roles RolePermission[]
-
-  @@unique([resource, action])
-  @@index([resource])
-}
-
-// Many-to-many relation between Role and Permission
-model RolePermission {
-  id           String   @id @default(cuid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-
-  // Relations
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@index([permissionId])
-}
-
-// Many-to-many relation between User and Role
-model UserRole {
-  id        String   @id @default(cuid())
-  userId    String
-  roleId    String
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId])
-  @@index([userId])
-  @@index([roleId])
-}
+// Many-to-many relation between User and Role - COMMENTED OUT
+// User model needs a direct 'role' enum field instead
+// model UserRole {
+//   id        String   @id @default(cuid())
+//   userId    String
+//   roleId    String
+//   createdAt DateTime @default(now())
+// 
+//   // Relations
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+// 
+//   @@unique([userId, roleId])
+//   @@index([userId])
+//   @@index([roleId])
+// }
 
 // Plan Model with JSON fields
 model Plan {
@@ -196,13 +224,15 @@ model Subscription {
   @@index([currentPeriodEnd])
 }
 
-// FeatureFlag Model
+// FeatureFlag Model with plan access and user overrides
 model FeatureFlag {
   id                String   @id @default(cuid())
   name              String   @unique
   description       String?
   isEnabled         Boolean  @default(false)
   rolloutPercentage Int      @default(0) // 0-100 for gradual rollout
+  planAccess        Json?    // JSON array of allowed plans: ["FREE", "STARTER", "PRO", "ENTERPRISE"]
+  userOverrides     Json?    // JSON object of user-specific overrides: { "userId": true/false }
   metadata          Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -213,39 +243,31 @@ model FeatureFlag {
 
 // AIUsageLog Model
 model AIUsageLog {
-  id         String   @id @default(cuid())
-  userId     String
-  model      String
-  tokensUsed Int
-  cost       Float?
-  operation  String
-  metadata   Json?
-  timestamp  DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  model           String
+  tokensUsed      Int
+  tokenCount      Int      @default(0) // Alias for consistency
+  cost            Float?
+  costEstimate    Float    @default(0)
+  operation       String
+  featureType     String? // Type of AI feature used
+  executionTime   Int      @default(0) // milliseconds
+  metadata        Json?
+  timestamp       DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, timestamp])
+  @@index([userId, createdAt])
   @@index([model])
   @@index([timestamp])
-}
-
-// WebhookEvent Model
-model WebhookEvent {
-  id          String    @id @default(cuid())
-  source      String
-  eventType   String
-  payload     Json
-  status      String    @default("pending") // pending, processed, failed
-  attempts    Int       @default(0)
-  lastError   String?
-  processedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([source, eventType])
-  @@index([status])
   @@index([createdAt])
+  @@index([featureType])
 }
 
 // EmailTemplate Model
@@ -423,3 +445,190 @@ model AgentExecution {
   @@index([userId, timestamp])
   @@index([agentName, timestamp])
 }
+
+model PricingPlan {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  displayName           String
+  description           String?
+  monthlyPrice          Float
+  yearlyPrice           Float
+  stripeMonthlyPriceId  String?
+  stripeYearlyPriceId   String?
+  trialDays             Int      @default(0)
+  features              Json     @default("{}")
+  active                Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([active, sortOrder])
+}
+
+// RolePermission model - COMMENTED OUT due to missing Permission enum
+// This needs to be refactored to define Permission as an enum first
+// model RolePermission {
+//   id          String     @id @default(cuid())
+//   role        Role
+//   permission  Permission
+//   createdAt   DateTime   @default(now())
+//   
+//   @@unique([role, permission])
+//   @@index([role])
+// }
+
+// WebhookEvent - Logs webhook events from external services
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  source      String    // e.g., "stripe", "github"
+  eventType   String    // e.g., "customer.subscription.updated"
+  payload     Json      // The full webhook payload
+  status      String    @default("pending") // "pending", "processed", "failed"
+  attempts    Int       @default(1)
+  lastError   String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([source, eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// AI Expansion Models
+
+// ToolExecution - Logs all AI tool invocations
+model ToolExecution {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  toolName        String
+  input           Json
+  output          Json?
+  success         Boolean
+  errorMessage    String?
+  tokenCount      Int      @default(0)
+  costEstimate    Float    @default(0)
+  executionTime   Int // milliseconds
+  featureType     String // e.g., "web_search", "pdf_reader", "image_generation"
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([toolName])
+  @@index([featureType])
+  @@index([createdAt])
+}
+
+// VideoJob - Tracks video generation pipeline
+model VideoJob {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  status          String // "pending", "processing", "completed", "failed", "cancelled"
+  stage           String? // Current stage: "script", "scene", "asset", "voice", "timeline", "render"
+  script          Json? // Generated script
+  scenes          Json? // Scene breakdown
+  assets          Json? // Generated/selected assets
+  voiceConfig     Json? // Voice settings and generated audio
+  timeline        Json? // Timeline configuration
+  outputUrl       String? // Final video URL
+  thumbnailUrl    String?
+  duration        Int? // seconds
+  tokenCount      Int      @default(0)
+  costEstimate    Float    @default(0)
+  executionTime   Int      @default(0) // milliseconds
+  errorMessage    String?
+  retryCount      Int      @default(0)
+  metadata        Json? // Pipeline state, preferences, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([id, status]) // jobId lookups
+  @@index([createdAt])
+}
+
+// MediaAsset - Stores generated images, audio, video files
+model MediaAsset {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  type            String // "image", "audio", "video"
+  url             String
+  thumbnailUrl    String?
+  filename        String
+  mimeType        String
+  fileSize        Int // bytes
+  width           Int?
+  height          Int?
+  duration        Int? // seconds for audio/video
+  generationTool  String? // e.g., "dall-e", "stable-diffusion", "eleven-labs"
+  prompt          String?
+  tokenCount      Int      @default(0)
+  costEstimate    Float    @default(0)
+  metadata        Json? // Tool-specific metadata
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// UserMemory - Long-term AI memory for personalization
+model UserMemory {
+  id             String   @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  planId         String?
+  memoryType     String // "preference", "fact", "context", "conversation"
+  key            String // e.g., "writing_style", "favorite_topics"
+  value          Json // Flexible storage for any memory data
+  confidence     Float    @default(1.0) // 0-1 confidence score
+  source         String? // Where this memory came from
+  lastAccessed   DateTime @default(now())
+  accessCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, memoryType, key])
+  @@index([userId])
+  @@index([userId, memoryType])
+  @@index([lastAccessed])
+}
+
+// AutomationTask - Scheduled AI tasks and triggers
+model AutomationTask {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  planId          String?
+  name            String
+  description     String?
+  taskType        String // "scheduled", "trigger", "webhook"
+  schedule        String? // Cron expression for scheduled tasks
+  triggerCondition Json? // Conditions for trigger-based tasks
+  action          Json // AI action to perform
+  enabled         Boolean  @default(true)
+  lastRun         DateTime?
+  nextRun         DateTime?
+  runCount        Int      @default(0)
+  successCount    Int      @default(0)
+  failureCount    Int      @default(0)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, enabled])
+  @@index([nextRun])
+  @@index([taskType])
+}
+

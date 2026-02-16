@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Pricing Plans | TextWash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.ico" />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+  
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #333;
+    }
+    
+    .admin-header h1 {
+      color: #00d9ff;
+      margin: 0;
+    }
+    
+    .btn-create {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    
+    .btn-create:hover {
+      transform: translateY(-2px);
+    }
+    
+    .plans-table {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .plans-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .plans-table th {
+      background: rgba(0, 217, 255, 0.1);
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #00d9ff;
+    }
+    
+    .plans-table td {
+      padding: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .plans-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .status-badge.active {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    
+    .status-badge.inactive {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    
+    .action-btns {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn-action {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    
+    .btn-action:hover {
+      opacity: 0.8;
+    }
+    
+    .btn-edit {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-toggle {
+      background: #f59e0b;
+      color: white;
+    }
+    
+    .btn-delete {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.show {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: #1a1a1a;
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .modal-header h2 {
+      color: #00d9ff;
+      margin: 0;
+    }
+    
+    .btn-close {
+      background: none;
+      border: none;
+      color: #999;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #ccc;
+      font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: white;
+      font-family: inherit;
+    }
+    
+    .form-group textarea {
+      min-height: 100px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #00d9ff;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .btn-cancel {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    
+    .btn-save {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .error-message {
+      color: #ef4444;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #00d9ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div class="admin-header">
+      <div>
+        <h1>Pricing Plans Management</h1>
+        <p style="color: #999; margin: 0.5rem 0 0 0;">Manage subscription pricing plans</p>
+      </div>
+      <button class="btn-create" onclick="showCreateModal()">+ Create New Plan</button>
+    </div>
+    
+    <div id="loadingIndicator" class="loading">
+      Loading pricing plans...
+    </div>
+    
+    <div id="plansTableContainer" style="display: none;">
+      <div class="plans-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Plan Name</th>
+              <th>Display Name</th>
+              <th>Monthly</th>
+              <th>Yearly</th>
+              <th>Trial Days</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="plansTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Create/Edit Modal -->
+  <div id="planModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Create Pricing Plan</h2>
+        <button class="btn-close" onclick="closeModal()">&times;</button>
+      </div>
+      
+      <form id="planForm" onsubmit="savePlan(event)">
+        <input type="hidden" id="planId">
+        
+        <div class="form-group">
+          <label for="planName">Plan Name (Internal) *</label>
+          <input type="text" id="planName" required placeholder="e.g., PREMIUM">
+        </div>
+        
+        <div class="form-group">
+          <label for="displayName">Display Name *</label>
+          <input type="text" id="displayName" required placeholder="e.g., Premium">
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description</label>
+          <input type="text" id="description" placeholder="Brief description of the plan">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="monthlyPrice">Monthly Price ($) *</label>
+            <input type="number" id="monthlyPrice" step="0.01" required placeholder="0.00">
+          </div>
+          
+          <div class="form-group">
+            <label for="yearlyPrice">Yearly Price ($) *</label>
+            <input type="number" id="yearlyPrice" step="0.01" required placeholder="0.00">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="stripeMonthlyPriceId">Stripe Monthly Price ID</label>
+            <input type="text" id="stripeMonthlyPriceId" placeholder="price_xxxxx">
+          </div>
+          
+          <div class="form-group">
+            <label for="stripeYearlyPriceId">Stripe Yearly Price ID</label>
+            <input type="text" id="stripeYearlyPriceId" placeholder="price_xxxxx">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trialDays">Trial Days</label>
+            <input type="number" id="trialDays" value="0" min="0">
+          </div>
+          
+          <div class="form-group">
+            <label for="sortOrder">Sort Order</label>
+            <input type="number" id="sortOrder" value="0">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="features">Features (JSON)</label>
+          <textarea id="features" placeholder='{"limits": {"maxRequests": 1000}}'>{}</textarea>
+        </div>
+        
+        <div id="formError" class="error-message"></div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-save">Save Plan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script src="subdomain-config.js"></script>
+  <script>
+    // Check authentication
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/index.html';
+    }
+    
+    // API configuration
+    const API_URL = window.SubdomainConfig ? window.SubdomainConfig.API_URL : 'http://localhost:3000';
+    
+    let currentEditingPlanId = null;
+    
+    // Load plans on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPlans();
+    });
+    
+    async function loadPlans() {
+      try {
+        const response = await fetch(`${API_URL}/api/admin/pricing-plans`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to load plans');
+        }
+        
+        const plans = await response.json();
+        displayPlans(plans);
+        
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('plansTableContainer').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading plans:', error);
+        document.getElementById('loadingIndicator').innerHTML = '<p style="color: #ef4444;">Error loading plans. Please check your authentication and try again.</p>';
+      }
+    }
+    
+    function displayPlans(plans) {
+      const tbody = document.getElementById('plansTableBody');
+      tbody.innerHTML = '';
+      
+      plans.forEach(plan => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><strong>${plan.name}</strong></td>
+          <td>${plan.displayName}</td>
+          <td>$${plan.monthlyPrice.toFixed(2)}</td>
+          <td>$${plan.yearlyPrice.toFixed(2)}</td>
+          <td>${plan.trialDays}</td>
+          <td><span class="status-badge ${plan.active ? 'active' : 'inactive'}">${plan.active ? 'Active' : 'Inactive'}</span></td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-action btn-edit" onclick="editPlan('${plan.id}')">Edit</button>
+              <button class="btn-action btn-toggle" onclick="togglePlan('${plan.id}')">${plan.active ? 'Deactivate' : 'Activate'}</button>
+              <button class="btn-action btn-delete" onclick="deletePlan('${plan.id}', '${plan.name}')">Delete</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
+    function showCreateModal() {
+      currentEditingPlanId = null;
+      document.getElementById('modalTitle').textContent = 'Create Pricing Plan';
+      document.getElementById('planForm').reset();
+      document.getElementById('planId').value = '';
+      document.getElementById('planName').disabled = false;
+      document.getElementById('features').value = '{}';
+      document.getElementById('formError').textContent = '';
+      document.getElementById('planModal').classList.add('show');
+    }
+    
+    async function editPlan(planId) {
+      try {
+        const response = await fetch(`${API_URL}/api/admin/pricing-plans/${planId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to load plan');
+        }
+        
+        const plan = await response.json();
+        currentEditingPlanId = planId;
+        
+        document.getElementById('modalTitle').textContent = 'Edit Pricing Plan';
+        document.getElementById('planId').value = plan.id;
+        document.getElementById('planName').value = plan.name;
+        document.getElementById('planName').disabled = true; // Don't allow changing name
+        document.getElementById('displayName').value = plan.displayName;
+        document.getElementById('description').value = plan.description || '';
+        document.getElementById('monthlyPrice').value = plan.monthlyPrice;
+        document.getElementById('yearlyPrice').value = plan.yearlyPrice;
+        document.getElementById('stripeMonthlyPriceId').value = plan.stripeMonthlyPriceId || '';
+        document.getElementById('stripeYearlyPriceId').value = plan.stripeYearlyPriceId || '';
+        document.getElementById('trialDays').value = plan.trialDays;
+        document.getElementById('sortOrder').value = plan.sortOrder;
+        document.getElementById('features').value = JSON.stringify(plan.features, null, 2);
+        document.getElementById('formError').textContent = '';
+        
+        document.getElementById('planModal').classList.add('show');
+      } catch (error) {
+        console.error('Error loading plan:', error);
+        alert('Failed to load plan details');
+      }
+    }
+    
+    async function savePlan(event) {
+      event.preventDefault();
+      
+      const planId = document.getElementById('planId').value;
+      const isEdit = !!planId;
+      
+      // Parse features JSON
+      let features;
+      try {
+        features = JSON.parse(document.getElementById('features').value);
+      } catch (error) {
+        document.getElementById('formError').textContent = 'Invalid JSON in features field';
+        return;
+      }
+      
+      // Parse and validate numeric inputs
+      const monthlyPrice = parseFloat(document.getElementById('monthlyPrice').value);
+      const yearlyPrice = parseFloat(document.getElementById('yearlyPrice').value);
+      const trialDays = parseInt(document.getElementById('trialDays').value);
+      const sortOrder = parseInt(document.getElementById('sortOrder').value);
+      
+      // Validate parsed values
+      if (isNaN(monthlyPrice) || isNaN(yearlyPrice)) {
+        document.getElementById('formError').textContent = 'Invalid price values';
+        return;
+      }
+      
+      if (isNaN(trialDays) || trialDays < 0) {
+        document.getElementById('formError').textContent = 'Invalid trial days value';
+        return;
+      }
+      
+      if (isNaN(sortOrder)) {
+        document.getElementById('formError').textContent = 'Invalid sort order value';
+        return;
+      }
+      
+      const planData = {
+        name: document.getElementById('planName').value.toUpperCase(),
+        displayName: document.getElementById('displayName').value,
+        description: document.getElementById('description').value,
+        monthlyPrice: monthlyPrice,
+        yearlyPrice: yearlyPrice,
+        stripeMonthlyPriceId: document.getElementById('stripeMonthlyPriceId').value || null,
+        stripeYearlyPriceId: document.getElementById('stripeYearlyPriceId').value || null,
+        trialDays: trialDays,
+        sortOrder: sortOrder,
+        features: features
+      };
+      
+      try {
+        const url = isEdit 
+          ? `${API_URL}/api/admin/pricing-plans/${planId}`
+          : `${API_URL}/api/admin/pricing-plans`;
+        
+        const response = await fetch(url, {
+          method: isEdit ? 'PUT' : 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(planData)
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to save plan');
+        }
+        
+        closeModal();
+        loadPlans();
+      } catch (error) {
+        console.error('Error saving plan:', error);
+        document.getElementById('formError').textContent = error.message;
+      }
+    }
+    
+    async function togglePlan(planId) {
+      if (!confirm('Are you sure you want to toggle this plan\'s active status?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_URL}/api/admin/pricing-plans/${planId}/toggle-active`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to toggle plan');
+        }
+        
+        loadPlans();
+      } catch (error) {
+        console.error('Error toggling plan:', error);
+        alert('Failed to toggle plan status');
+      }
+    }
+    
+    async function deletePlan(planId, planName) {
+      if (!confirm(`Are you sure you want to delete the "${planName}" plan? This action cannot be undone.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_URL}/api/admin/pricing-plans/${planId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete plan');
+        }
+        
+        loadPlans();
+      } catch (error) {
+        console.error('Error deleting plan:', error);
+        alert('Failed to delete plan');
+      }
+    }
+    
+    function closeModal() {
+      document.getElementById('planModal').classList.remove('show');
+    }
+  </script>
+</body>
+</html>
