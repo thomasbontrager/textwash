@@ -2,6 +2,7 @@ import express from 'express';
 import { AuthRequest, SystemContext, CleanRequest, CleanResponse } from '../types';
 import { authenticateApiKey } from '../middleware/auth';
 import { apiKeyRateLimiter } from '../middleware/rateLimit';
+import { enforceAIUsageLimit } from '../middleware/usageLimits';
 import { getAgent, getAllAgents } from '../services/agentRegistry';
 import { getPolicies, applyPolicies, validateAgainstPolicies } from '../services/policyService';
 import { LLMServiceImpl, MockLLMService } from '../services/llm';
@@ -28,19 +29,21 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
     let result = text;
     
     // Get user's subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: req.user!.id }
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: req.user!.id, status: 'ACTIVE' },
+      include: { plan: true }
     });
     
     // Create system context
-    const llmEnabled = process.env.LLM_ENABLED === 'true' && subscription?.plan === 'PRO';
+    const llmEnabled = process.env.LLM_ENABLED === 'true' && subscription?.plan.name === 'PRO';
     const llmService = llmEnabled && process.env.LLM_API_KEY
       ? new LLMServiceImpl({
           apiKey: process.env.LLM_API_KEY!,
           apiUrl: process.env.LLM_API_URL,
           model: process.env.LLM_MODEL,
           maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500'),
-          timeout: parseInt(process.env.LLM_TIMEOUT || '10000')
+          timeout: parseInt(process.env.LLM_TIMEOUT || '10000'),
+          userId: req.user!.id
         })
       : new MockLLMService();
     
@@ -54,7 +57,7 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
       llm: llmService,
       userId: req.user!.id,
       organizationId: req.user!.organizationId,
-      plan: subscription?.plan || 'FREE'
+      plan: subscription?.plan.name || 'FREE'
     };
     
     // Get agents based on mode
@@ -133,7 +136,7 @@ router.post('/v1/clean', async (req: AuthRequest, res) => {
 });
 
 // POST /v1/rewrite - AI-powered rewriting
-router.post('/v1/rewrite', async (req: AuthRequest, res) => {
+router.post('/v1/rewrite', enforceAIUsageLimit, async (req: AuthRequest, res) => {
   try {
     const { text, mode } = req.body as CleanRequest;
     
@@ -144,11 +147,12 @@ router.post('/v1/rewrite', async (req: AuthRequest, res) => {
     const startTime = Date.now();
     
     // Get user's subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: req.user!.id }
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: req.user!.id, status: 'ACTIVE' },
+      include: { plan: true }
     });
     
-    if (subscription?.plan === 'FREE') {
+    if (subscription?.plan.name === 'FREE') {
       return res.status(403).json({
         error: 'Rewrite feature requires PRO plan',
         upgrade: '/pricing'
@@ -163,7 +167,8 @@ router.post('/v1/rewrite', async (req: AuthRequest, res) => {
           apiUrl: process.env.LLM_API_URL,
           model: process.env.LLM_MODEL,
           maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500'),
-          timeout: parseInt(process.env.LLM_TIMEOUT || '10000')
+          timeout: parseInt(process.env.LLM_TIMEOUT || '10000'),
+          userId: req.user!.id
         })
       : new MockLLMService();
     
@@ -177,7 +182,7 @@ router.post('/v1/rewrite', async (req: AuthRequest, res) => {
       llm: llmService,
       userId: req.user!.id,
       organizationId: req.user!.organizationId,
-      plan: subscription?.plan || 'FREE'
+      plan: subscription?.plan.name || 'FREE'
     };
     
     // Select agent based on mode

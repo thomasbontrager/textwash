@@ -11,7 +11,7 @@ export async function getPolicies(organizationId: string): Promise<PolicyRules[]
     }
   });
   
-  return policies.map(p => p.rules as PolicyRules);
+  return policies.map((p: any) => p.rules as PolicyRules);
 }
 
 export function applyPolicies(agents: Agent[], policies: PolicyRules[]): Agent[] {

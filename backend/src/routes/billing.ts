@@ -1,11 +1,33 @@
 import express from 'express';
 import Stripe from 'stripe';
-import { AuthRequest } from '../types';
-import { authenticateToken } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../middleware/auth';
+import { AuthRequest } from '../types';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Initialize Stripe
+let stripe: Stripe | null = null;
+
+async function getStripe(): Promise<Stripe | null> {
+  if (stripe) return stripe;
+  
+  // Get Stripe keys from admin profile
+  const adminProfile = await prisma.adminProfile.findFirst();
+  
+  if (adminProfile?.stripeSecretKey) {
+    stripe = new Stripe(adminProfile.stripeSecretKey, {
+      apiVersion: '2023-10-16'
+    });
+    return stripe;
+  }
+  
+  return null;
+}
+
+// All billing routes require authentication
+router.use(authenticateToken);
 
 // POST /billing/create-portal-session - Create Stripe Customer Portal session
 router.post('/create-portal-session', authenticateToken, async (req: AuthRequest, res) => {
@@ -20,7 +42,7 @@ router.post('/create-portal-session', authenticateToken, async (req: AuthRequest
 
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      include: { subscription: true }
+      include: { subscriptions: true }
     });
 
     if (!user) {
