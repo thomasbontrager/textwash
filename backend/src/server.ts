@@ -6,7 +6,7 @@ import { globalLimiter } from './middleware/rateLimit';
 import { extractSubdomain, requireSubdomain, getSubdomainUrl } from './middleware/subdomain';
 import { apiLogger } from './middleware/apiLogger';
 import { startAgentHotReload } from './services/agentRegistry';
-import { initializeTools } from './ai/core/tool-initializer';
+import { AIInitializer } from './ai/core/ai-initializer';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import apiRoutes from './routes/api';
@@ -113,10 +113,8 @@ async function startServer() {
     await prisma.$connect();
     console.log('Database connected');
     
-    // Initialize AI tools
-    if (process.env.FEATURE_AI_CORE === 'true' || process.env.FEATURE_AGENT_SYSTEM === 'true') {
-      initializeTools();
-    }
+    // Initialize AI system with autorun
+    await AIInitializer.initialize();
     
     // Start agent hot-reload in development
     if (process.env.NODE_ENV === 'development') {

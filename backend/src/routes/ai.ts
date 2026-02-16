@@ -5,13 +5,42 @@ import { AgentService } from '../ai/agents/agent.service';
 import { ToolRegistry } from '../ai/agents/tool.registry';
 import { ToolExecutor } from '../ai/agents/tool.executor';
 import { AIService } from '../ai/core/ai.service';
+import { AIInitializer } from '../ai/core/ai-initializer';
 import { MemoryService } from '../ai/memory/memory.service';
 import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// All routes require authentication
+/**
+ * GET /ai/status - Get AI system initialization status
+ * Public endpoint (no auth required)
+ */
+router.get('/status', (req, res: Response) => {
+  try {
+    const status = AIInitializer.getStatus();
+    
+    // Remove sensitive error details for non-admin users
+    const publicStatus = {
+      enabled: status.enabled,
+      healthy: status.providerHealthy && status.memorySystemReady,
+      provider: status.provider,
+      toolsAvailable: status.toolsRegistered,
+      reasoningModes: status.reasoningModesAvailable.length,
+      initialized: AIInitializer.isInitialized(),
+    };
+
+    res.json(publicStatus);
+  } catch (error) {
+    console.error('Get AI status error:', error);
+    res.status(500).json({
+      error: 'Failed to get AI status',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// All other routes require authentication
 router.use(authenticateToken);
 
 /**
