@@ -316,12 +316,21 @@ Access at: `http://localhost:3001` (if admin user)
 
 ### Features
 - **Stripe Config**: Manage Stripe API keys securely
-- **User Management**: View users, grant/revoke Pro access
+- **User Management**: 
+  - View paginated user list with search and filters
+  - Search users by email
+  - Filter by plan, role, and status
+  - View detailed user information (subscription, usage, login history)
+  - Suspend/activate users
+  - Reset user passwords
+  - Assign subscription plans
+  - Soft delete users (preserves audit trail)
 - **Subscription Status**: Monitor all active subscriptions
 - **Agent Management**: Update rules, reload agents, view execution logs
 - **Policy Management**: Create and manage enterprise policies
 - **API Keys**: Generate and manage B2B API keys
 - **Usage Analytics**: Track API usage for billing
+- **Login Tracking**: Monitor login attempts with IP, user agent, and timestamps
 
 ## 🔐 Security & Permissions
 
@@ -333,6 +342,11 @@ Access at: `http://localhost:3001` (if admin user)
 ### Authorization
 - **User Role** - Standard access
 - **Admin Role** - Full management access
+  - MANAGE_USERS - User management operations
+  - MANAGE_STRIPE - Stripe configuration
+  - MANAGE_AGENTS - Agent and rule management
+  - MANAGE_API_KEYS - API key operations
+  - VIEW_ANALYTICS - Usage analytics
 - **Organization Scoping** - Multi-tenant isolation
 
 ### Safety Controls

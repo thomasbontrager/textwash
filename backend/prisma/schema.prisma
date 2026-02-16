@@ -58,6 +58,33 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String
+  role          Role          @default(USER)
+  status        UserStatus    @default(ACTIVE)
+  stripeId      String?       @unique
+  deletedAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  subscription  Subscription?
+  adminProfile  AdminProfile?
+  apiKeys       ApiKey[]
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+  agentExecutions AgentExecution[]
+  loginLogs     LoginLog[]
+  
+  @@index([status, email])
+  @@index([deletedAt])
 // User Model with soft delete
 model User {
   id           String    @id @default(cuid())
@@ -446,6 +473,17 @@ model AgentExecution {
   @@index([agentName, timestamp])
 }
 
+model LoginLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  ipAddress   String?
+  userAgent   String?
+  success     Boolean  @default(true)
+  timestamp   DateTime @default(now())
+  
+  @@index([userId, timestamp])
+}
 model PricingPlan {
   id                    String   @id @default(cuid())
   name                  String   @unique
