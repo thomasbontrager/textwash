@@ -15,6 +15,7 @@ import billingRoutes from './routes/billing';
 import stripeRoutes from './routes/stripe';
 import pricingPlansRoutes from './routes/pricing-plans';
 import featureExamplesRoutes from './routes/featureExamples';
+import emailTemplatesRoutes from './routes/email-templates';
 import metricsRoutes from './routes/metrics';
 import aiRoutes from './routes/ai';
 
@@ -91,6 +92,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
 app.use('/api/admin/pricing-plans', requireSubdomain(['admin', 'api', '']), pricingPlansRoutes);
+app.use('/api/admin/email-templates', requireSubdomain(['admin', 'api', '']), emailTemplatesRoutes);
 app.use('/api/admin/metrics', requireSubdomain(['admin', 'api', '']), metricsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/features', featureExamplesRoutes);  // Feature flag examples
