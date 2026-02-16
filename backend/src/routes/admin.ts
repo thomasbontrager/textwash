@@ -394,12 +394,6 @@ router.get('/users', async (req: AuthRequest, res) => {
       include: {
         subscription: true
       },
-// ===== FEATURE FLAG ROUTES =====
-
-// GET /admin/feature-flags - List all feature flags
-router.get('/feature-flags', async (req: AuthRequest, res) => {
-  try {
-    const flags = await prisma.featureFlag.findMany({
       orderBy: {
         createdAt: 'desc'
       }
@@ -418,6 +412,24 @@ router.get('/feature-flags', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('List users error:', error);
     res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+// ===== FEATURE FLAG ROUTES =====
+
+// GET /admin/feature-flags - List all feature flags
+router.get('/feature-flags', async (req: AuthRequest, res) => {
+  try {
+    const flags = await prisma.featureFlag.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    res.json(flags);
+  } catch (error) {
+    console.error('List feature flags error:', error);
+    res.status(500).json({ error: 'Failed to list feature flags' });
   }
 });
 
@@ -477,10 +489,15 @@ router.post('/users/:userId/revoke-access', async (req: AuthRequest, res) => {
         currentPeriodStart: null,
         currentPeriodEnd: null
       }
-    res.json(flags);
+    });
+    
+    res.json({
+      success: true,
+      message: 'Access revoked'
+    });
   } catch (error) {
-    console.error('List feature flags error:', error);
-    res.status(500).json({ error: 'Failed to list feature flags' });
+    console.error('Revoke access error:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
   }
 });
 
@@ -631,11 +648,6 @@ router.post('/stripe-config', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Save Stripe config error:', error);
     res.status(500).json({ error: 'Failed to save Stripe configuration' });
-      message: 'Feature flag deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete feature flag error:', error);
-    res.status(500).json({ error: 'Failed to delete feature flag' });
   }
 });
 
