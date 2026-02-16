@@ -13,8 +13,6 @@ import apiRoutes from './routes/api';
 import subscriptionRoutes from './routes/subscriptions';
 import billingRoutes from './routes/billing';
 import stripeRoutes from './routes/stripe';
-import billingRoutes from './routes/billing';
-import subscriptionsRoutes from './routes/subscriptions';
 import pricingPlansRoutes from './routes/pricing-plans';
 import featureExamplesRoutes from './routes/featureExamples';
 import emailTemplatesRoutes from './routes/email-templates';
@@ -33,14 +31,19 @@ app.use(extractSubdomain);
 
 // Middleware - CORS for multiple subdomains
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3001',
+  'https://textwash.app',
+  'https://admin.textwash.app',
   getSubdomainUrl(''),        // textwash.app
   getSubdomainUrl('api'),     // api.textwash.app
   getSubdomainUrl('billing'), // billing.textwash.app
   getSubdomainUrl('admin'),   // admin.textwash.app
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://localhost:3003'
+  // Development URLs
+  ...(process.env.NODE_ENV === 'development' ? [
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    process.env.FRONTEND_URL || 'http://localhost:3001'
+  ] : [])
 ];
 
 app.use(cors({
@@ -65,6 +68,8 @@ app.use(cors({
 
 // Stripe webhook route - must be before express.json() middleware
 // to get raw body for signature verification
+app.use('/webhooks/stripe', stripeRoutes);
+// Keep legacy route for backwards compatibility
 app.use('/api/stripe', stripeRoutes);
 
 app.use(express.json());
@@ -84,15 +89,12 @@ app.get('/health', (req, res) => {
 // Subdomain-based routing
 // API Routes - available on api.textwash.app (and root for backwards compatibility)
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/billing', billingRoutes);
-app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/billing', requireSubdomain(['billing', 'api', '']), billingRoutes);
 app.use('/api/admin', requireSubdomain(['admin', 'api', '']), adminRoutes);
 app.use('/api/admin/pricing-plans', requireSubdomain(['admin', 'api', '']), pricingPlansRoutes);
 app.use('/api/admin/email-templates', requireSubdomain(['admin', 'api', '']), emailTemplatesRoutes);
 app.use('/api/admin/metrics', requireSubdomain(['admin', 'api', '']), metricsRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/features', featureExamplesRoutes);  // Feature flag examples
 app.use('/api/ai', aiRoutes);  // AI and tool endpoints
 app.use('/api', apiRoutes);

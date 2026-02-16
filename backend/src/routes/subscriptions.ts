@@ -3,9 +3,6 @@ import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AuthRequest } from '../types';
-import { AuthRequest } from '../types';
-import { authenticateToken } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -35,91 +32,6 @@ async function getStripe(): Promise<Stripe | null> {
 // All subscription routes require authentication
 router.use(authenticateToken);
 
-// POST /subscriptions/create-checkout-session - Create Stripe checkout session
-router.post('/create-checkout-session', async (req: AuthRequest, res) => {
-  try {
-    const { plan } = req.body;
-    const userId = req.user!.id;
-    
-    if (!plan || !['STARTER', 'PRO', 'ENTERPRISE'].includes(plan)) {
-      return res.status(400).json({ error: 'Invalid plan' });
-    }
-    
-    const stripeClient = await getStripe();
-    if (!stripeClient) {
-      return res.status(500).json({ error: 'Stripe not configured' });
-    }
-    
-    // Get or create Stripe customer
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    let customerId = user.stripeId;
-    
-    if (!customerId) {
-      const customer = await stripeClient.customers.create({
-        email: user.email,
-        metadata: { userId }
-      });
-      
-      customerId = customer.id;
-      
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeId: customerId }
-      });
-    }
-    
-    // Price mapping (in cents)
-    const priceMap: Record<string, { amount: number; name: string }> = {
-      STARTER: { amount: 2900, name: 'Starter Plan' },
-      PRO: { amount: 9900, name: 'Pro Plan' },
-      ENTERPRISE: { amount: 29900, name: 'Enterprise Plan' }
-    };
-    
-    const planInfo = priceMap[plan];
-    
-    // Create checkout session
-    const session = await stripeClient.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: planInfo.name,
-              description: `TextWash ${plan} subscription`
-            },
-            recurring: {
-              interval: 'year'
-            },
-            unit_amount: planInfo.amount
-          },
-          quantity: 1
-        }
-      ],
-      mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}?success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/pricing?canceled=true`,
-      metadata: {
-        userId,
-        plan
-      },
-      subscription_data: {
-        trial_period_days: TRIAL_PERIOD_DAYS,
-        metadata: {
-          userId,
-          plan
-        }
-      }
-    });
-    
 // Constants
 const STRIPE_API_VERSION = '2023-10-16' as const;
 const DEFAULT_BASE_DOMAIN = 'textwash.app';
@@ -234,41 +146,6 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
   }
 });
 
-// POST /subscriptions/cancel-subscription - Cancel subscription
-router.post('/cancel-subscription', async (req: AuthRequest, res) => {
-  try {
-    const userId = req.user!.id;
-    
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId }
-    });
-    
-    if (!subscription || !subscription.stripeSubscriptionId) {
-      return res.status(404).json({ error: 'No active subscription found' });
-    }
-    
-    const stripeClient = await getStripe();
-    if (!stripeClient) {
-      return res.status(500).json({ error: 'Stripe not configured' });
-    }
-    
-    // Cancel at period end
-    await stripeClient.subscriptions.update(subscription.stripeSubscriptionId, {
-      cancel_at_period_end: true
-    });
-    
-    // Update subscription status
-    await prisma.subscription.update({
-      where: { userId },
-      data: {
-        status: 'CANCELED'
-      }
-    });
-    
-    res.json({
-      success: true,
-      message: 'Subscription will be canceled at the end of the billing period'
-    });
 // POST /subscriptions/cancel-subscription - Cancel user's subscription
 router.post('/cancel-subscription', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -343,21 +220,43 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
-        const plan = session.metadata?.plan as string;
+        const planName = session.metadata?.plan as string;
         
-        if (userId && plan) {
-          await prisma.subscription.update({
-            where: { userId },
-            data: {
-              plan: plan as any,
-              status: 'ACTIVE',
-              stripeSubscriptionId: session.subscription as string,
-              stripeCustomerId: session.customer as string,
-              trialEndsAt: session.subscription ? undefined : null,
-              currentPeriodStart: new Date(),
-              currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        if (userId && planName) {
+          const plan = await prisma.plan.findFirst({ where: { name: planName } });
+          if (plan) {
+            const existingSub = await prisma.subscription.findFirst({
+              where: { userId, status: 'ACTIVE' }
+            });
+            
+            if (existingSub) {
+              await prisma.subscription.update({
+                where: { id: existingSub.id },
+                data: {
+                  planId: plan.id,
+                  status: 'ACTIVE',
+                  stripeSubscriptionId: session.subscription as string,
+                  stripeCustomerId: session.customer as string,
+                  trialEndsAt: session.subscription ? undefined : null,
+                  currentPeriodStart: new Date(),
+                  currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+                }
+              });
+            } else {
+              await prisma.subscription.create({
+                data: {
+                  userId,
+                  planId: plan.id,
+                  status: 'ACTIVE',
+                  stripeSubscriptionId: session.subscription as string,
+                  stripeCustomerId: session.customer as string,
+                  trialEndsAt: session.subscription ? undefined : null,
+                  currentPeriodStart: new Date(),
+                  currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+                }
+              });
             }
-          });
+          }
         }
         break;
         
@@ -366,17 +265,23 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const subUserId = subscription.metadata?.userId;
         
         if (subUserId) {
-          await prisma.subscription.update({
-            where: { userId: subUserId },
-            data: {
-              status: subscription.status === 'active' ? 'ACTIVE' : 
-                     subscription.status === 'canceled' ? 'CANCELED' :
-                     subscription.status === 'past_due' ? 'PAST_DUE' :
-                     subscription.status === 'trialing' ? 'TRIALING' : 'ACTIVE',
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-            }
+          const existingSub = await prisma.subscription.findFirst({
+            where: { userId: subUserId, status: 'ACTIVE' }
           });
+          
+          if (existingSub) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                status: subscription.status === 'active' ? 'ACTIVE' : 
+                       subscription.status === 'canceled' ? 'CANCELED' :
+                       subscription.status === 'past_due' ? 'PAST_DUE' :
+                       subscription.status === 'trialing' ? 'TRIALING' : 'ACTIVE',
+                currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+              }
+            });
+          }
         }
         break;
         
@@ -385,14 +290,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const deletedUserId = deletedSub.metadata?.userId;
         
         if (deletedUserId) {
-          await prisma.subscription.update({
-            where: { userId: deletedUserId },
-            data: {
-              plan: 'FREE',
-              status: 'CANCELED',
-              stripeSubscriptionId: null
-            }
+          const freePlan = await prisma.plan.findFirst({ where: { name: 'FREE' } });
+          const existingSub = await prisma.subscription.findFirst({
+            where: { userId: deletedUserId, status: 'ACTIVE' }
           });
+          
+          if (existingSub && freePlan) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                planId: freePlan.id,
+                status: 'CANCELED',
+                stripeSubscriptionId: null
+              }
+            });
+          }
         }
         break;
     }
