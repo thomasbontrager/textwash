@@ -6,9 +6,11 @@ import {
   ToolCategory,
 } from './tool.types';
 import Ajv from 'ajv';
+import createDOMPurify from 'isomorphic-dompurify';
 
 const prisma = new PrismaClient();
 const ajv = new Ajv();
+const DOMPurify = createDOMPurify();
 
 /**
  * Tool Executor
@@ -124,15 +126,23 @@ export class ToolExecutor {
 
   /**
    * Sanitize input to prevent injection attacks
+   * Uses DOMPurify for robust HTML/script sanitization
    */
   private static sanitizeInput(input: any): any {
     if (typeof input === 'string') {
-      // Remove potentially dangerous characters/patterns
-      return input
-        .replace(/<script[^>]*>.*?<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .trim();
+      // Use DOMPurify for comprehensive sanitization
+      // This removes all dangerous HTML/JS patterns including:
+      // - <script> tags (all variations)
+      // - javascript: URLs
+      // - data: URLs
+      // - vbscript: URLs
+      // - on* event handlers
+      // - and many other XSS vectors
+      return DOMPurify.sanitize(input, {
+        ALLOWED_TAGS: [], // Strip all HTML tags
+        ALLOWED_ATTR: [], // Strip all attributes
+        KEEP_CONTENT: true, // Keep text content
+      }).trim();
     }
 
     if (Array.isArray(input)) {

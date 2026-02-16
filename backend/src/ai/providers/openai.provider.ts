@@ -190,7 +190,7 @@ export class OpenAIProvider implements AIProvider {
   estimateCost(tokenCount: number, model?: string): number {
     const modelName = model || this.defaultModel;
 
-    // Cost per 1K tokens (approximate pricing as of 2024)
+    // Cost per 1K tokens (pricing subject to change - verify with OpenAI)
     const costs: Record<string, { input: number; output: number }> = {
       'gpt-4': { input: 0.03, output: 0.06 },
       'gpt-4-turbo': { input: 0.01, output: 0.03 },

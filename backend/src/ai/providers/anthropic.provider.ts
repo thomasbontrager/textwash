@@ -194,7 +194,7 @@ export class AnthropicProvider implements AIProvider {
   estimateCost(tokenCount: number, model?: string): number {
     const modelName = model || this.defaultModel;
 
-    // Cost per 1M tokens (approximate pricing as of 2024)
+    // Cost per 1M tokens (pricing subject to change - verify with Anthropic)
     const costs: Record<string, { input: number; output: number }> = {
       'claude-3-opus-20240229': { input: 15, output: 75 },
       'claude-3-sonnet-20240229': { input: 3, output: 15 },
