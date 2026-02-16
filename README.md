@@ -364,6 +364,7 @@ See **[backend/API_EXAMPLES.md](./backend/API_EXAMPLES.md)** for complete exampl
 
 ## 📚 Documentation
 
+- **[AI_CAPABILITIES.md](./AI_CAPABILITIES.md)** - Comprehensive AI capabilities guide
 - **[SUBDOMAIN_GUIDE.md](./SUBDOMAIN_GUIDE.md)** - Subdomain architecture setup
 - **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** - Full integration guide
 - **[backend/README.md](./backend/README.md)** - Backend quick start
