@@ -8,6 +8,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Permission enum
+export enum Permission {
+  MANAGE_USERS = 'MANAGE_USERS',
+  MANAGE_STRIPE = 'MANAGE_STRIPE',
+  MANAGE_AGENTS = 'MANAGE_AGENTS',
+  MANAGE_API_KEYS = 'MANAGE_API_KEYS',
+  VIEW_ANALYTICS = 'VIEW_ANALYTICS'
+}
+
+// Admin role has all permissions
+const ADMIN_PERMISSIONS = Object.values(Permission);
+
 export async function authenticateToken(
   req: AuthRequest,
   res: Response,
@@ -195,16 +207,17 @@ export function protectedRoute(
  * Usage: requireRole(['ADMIN', 'SUPER_ADMIN'])
  */
 export function requireRole(allowedRoles: string[]) {
+export function requirePermission(permission: Permission) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     
-    if (!allowedRoles.includes(req.user.role)) {
+    // Check if user has the required permission (admin has all permissions)
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ 
         error: 'Insufficient permissions',
-        required: allowedRoles,
-        current: req.user.role
+        required: permission
       });
     }
     
