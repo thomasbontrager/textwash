@@ -105,6 +105,8 @@ model User {
   organization    Organization?    @relation(fields: [organizationId], references: [id])
   organizationId  String?
   agentExecutions AgentExecution[]
+  sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
   aiUsageLogs     AIUsageLog[]
   loginLogs       LoginLog[]
   apiLogs         APILog[]
@@ -473,6 +475,34 @@ model AgentExecution {
   @@index([agentName, timestamp])
 }
 
+model Session {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token           String   @unique
+  expiresAt       DateTime
+  userAgent       String?
+  ipAddress       String?
+  createdAt       DateTime @default(now())
+  lastActivityAt  DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 model LoginLog {
   id          String   @id @default(cuid())
   userId      String

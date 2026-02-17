@@ -1,6 +1,8 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../types';
+import { prisma } from '../lib/prisma';
+import { verifyAccessToken, TokenPayload } from '../lib/auth/tokens';
 import { PrismaClient, RoleEnum as Role, PermissionEnum as Permission } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 
@@ -23,15 +25,26 @@ export async function authenticateToken(
   res: Response,
   next: NextFunction
 ) {
+  // Try to get token from Authorization header first, then from cookie
+  let token: string | undefined;
+  
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.cookies?.auth_token) {
+    token = req.cookies.auth_token;
+  }
   
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
   
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = verifyAccessToken(token);
+    
+    if (!decoded) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -45,12 +58,38 @@ export async function authenticateToken(
       return res.status(401).json({ error: 'User not found' });
     }
     
+    // Validate session if sessionId is present
+    if (decoded.sessionId) {
+      const session = await prisma.session.findFirst({
+        where: {
+          id: decoded.sessionId,
+          userId: user.id,
+          expiresAt: { gt: new Date() }
+        }
+      });
+      
+      if (!session) {
+        return res.status(401).json({ error: 'Session expired or invalid' });
+      }
+      
+      // Update last activity
+      await prisma.session.update({
+        where: { id: decoded.sessionId },
+        data: { lastActivityAt: new Date() }
+      }).catch(() => {}); // Non-critical, don't fail if update fails
+    }
+    
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
       organizationId: user.organizationId || undefined
     };
+    
+    // Attach sessionId to request for logout
+    if (decoded.sessionId) {
+      (req as any).sessionId = decoded.sessionId;
+    }
     
     next();
   } catch (error) {
@@ -142,6 +181,32 @@ export function requirePlan(allowedPlans: string[]) {
   };
 }
 
+// Protected route wrapper for combining multiple auth checks
+export function protectedRoute(
+  requireAuth: boolean = true,
+  requiredRole?: 'ADMIN' | 'USER',
+  requiredPlans?: string[]
+) {
+  const middleware: any[] = [];
+  
+  if (requireAuth) {
+    middleware.push(authenticateToken);
+  }
+  
+  if (requiredRole === 'ADMIN') {
+    middleware.push(requireAdmin);
+  }
+  
+  if (requiredPlans && requiredPlans.length > 0) {
+    middleware.push(requirePlan(requiredPlans));
+  }
+  
+  return middleware;
+/**
+ * Middleware to require specific role(s)
+ * Usage: requireRole(['ADMIN', 'SUPER_ADMIN'])
+ */
+export function requireRole(allowedRoles: string[]) {
 export function requirePermission(permission: Permission) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {

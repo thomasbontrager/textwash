@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { globalLimiter } from './middleware/rateLimit';
 import { extractSubdomain, requireSubdomain, getSubdomainUrl } from './middleware/subdomain';
+import { csrfProtection } from './middleware/csrf';
 import { apiLogger } from './middleware/apiLogger';
 import { startAgentHotReload } from './services/agentRegistry';
 import { AIInitializer } from './ai/core/ai-initializer';
@@ -77,6 +79,10 @@ app.use('/api/stripe', stripeRoutes);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Apply CSRF protection for cookie-based auth
+app.use(csrfProtection);
 
 // Apply global rate limiter
 app.use(globalLimiter);
