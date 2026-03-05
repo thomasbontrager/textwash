@@ -1,3 +1,7 @@
+# 🔥 textwash
+
+Clean and process text at scale
+
 # TextWash - Advanced Text Processing Platform
 
 Professional text cleaning with AI features, self-updating agents, and enterprise-grade B2B API.
